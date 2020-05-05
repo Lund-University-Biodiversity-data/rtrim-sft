@@ -5,5 +5,5 @@ Files needed should be downloaded to the local computer. Preferably create a Rst
 
 app.R
 UsefulFunctions.R
-SummariseResults.R
+Summarise_Results.R
 www (folder)

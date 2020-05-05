@@ -5,6 +5,10 @@ Files needed should be downloaded to the local computer. Preferably create a Rst
 
 app.R<br/>
 UsefulFunctions.R<br/>
-Summarise_Results.R
-www (folder)
+Summarise_Results.R<br/>
+www (folder)<br/>
+SpeciesWithShorterTimePeriods.xls<br/>
 
+
+
+testtillägg till readme

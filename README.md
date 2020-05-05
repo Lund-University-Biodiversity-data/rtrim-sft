@@ -4,6 +4,8 @@ This is a project to develop a shinyapp interface for using rtrim to analyse bir
 Files needed should be downloaded to the local computer. Preferably create a Rstudio project (make a project using Rstudio) and add files to this. Files (and folders) needed are:
 
 app.R
+
 UsefulFunctions.R
 Summarise_Results.R
 www (folder)
+

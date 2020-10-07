@@ -10,3 +10,25 @@ www (folder)<br/>
 SpeciesWithShorterTimePeriods.xls<br/>
 
 
+# R packages required
+```
+install.packages("shinythemes")
+install.packages("shinycssloaders")
+install.packages("pool")
+install.packages("rtrim")
+install.packages("readxl")
+```
+
+# To use it without ODBC connector, but directly to postgres
+```
+install.packages("RPostgres")
+```
+in the app.R file, comment the line:
+```
+pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
+```
+and uncomment/edit these ones, with your configuration
+```
+#library(RPostgres)
+#pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft20201002', user='postgres')
+```

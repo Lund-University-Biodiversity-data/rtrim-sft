@@ -6,6 +6,10 @@ library(shinycssloaders)
 library(rtrim)
 source('UsefulFunctions.R')
 pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
+
+#library(RPostgres)
+#pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft20201002', user='postgres')
+
 querysp <- "select art, arthela, latin, englishname, worldname, rank
               from eurolist
               order by art"

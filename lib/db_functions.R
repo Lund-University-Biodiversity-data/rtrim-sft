@@ -503,13 +503,11 @@ mergeTabs <- function (minus1, zeros, stdcount) {
 
 	merge1 <- merge(x= minus1, y=zeros, by=c("site", "species","time"), all.x=TRUE)
 
-	write.csv(merge1, file = 'test_merge1.csv',
-              row.names = FALSE)
+	#write.csv(merge1, file = 'test_merge1.csv', row.names = FALSE)
 
 	merge2 <- merge(x= merge1, y=stdcount, by=c("site", "species","time"), all.x=TRUE)
 
-	write.csv(merge2, file = 'test_merge2.csv',
-              row.names = FALSE)
+	#write.csv(merge2, file = 'test_merge2.csv', row.names = FALSE)
 
 	final <- data.frame (merge2$site, merge2$species, merge2$time, pmax(merge2$count.x, merge2$count.y, merge2$count, na.rm= TRUE))
 	colnames(final) <- c("site", "species", "time", "count")

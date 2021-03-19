@@ -15,8 +15,8 @@ postgres_url <<- ""
 postgres_user <<- "postgres"
 postgres_password <<- "tamere"
 
-mongo_database <<- "sft"
-mongo_url <<- ""
+mongo_database <<- "ecodata"
+mongo_url <<- "mongodb://localhost"
 mongo_user <<- "postgres"
 mongo_password <<- "tamere"
 

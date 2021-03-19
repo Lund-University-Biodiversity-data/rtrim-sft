@@ -31,7 +31,7 @@ getSitesMongo <- function () {
 
 	# MISSING ALL THE PK SITES
 
-	mongoConnection  <- mongo(collection = "site",db = "ecodata",url = "mongodb://localhost",verbose = FALSE,options = ssl_options())
+	mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	res <- mongoConnection$iterate(
 	  query = '{"karta":{"$exists":1}, "projects":"89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"}', 
@@ -97,7 +97,7 @@ getListBirdsUrl <- function (listId) {
 
 getMatchSitesMongo <- function () {
 
-	mongoConnection  <- mongo(collection = "site",db = "ecodata",url = "mongodb://localhost",verbose = FALSE,options = ssl_options())
+	mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	res <- mongoConnection$iterate(
 	  query = '{"karta":{"$exists":1}, "projects":"89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"}', 
@@ -134,7 +134,7 @@ getBiotopSitesMongo <- function () {
 
 	# MISSING ALL THE PK SITES
 
-	mongoConnection  <- mongo(collection = "site",db = "ecodata",url = "mongodb://localhost",verbose = FALSE,options = ssl_options())
+	mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	res <- mongoConnection$iterate(
 	  query = '{"karta":{"$exists":1}, "projects":"89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"}', 
@@ -188,7 +188,7 @@ getIWCData <- function (pool) {
 getTabMinus1Mongo <- function (species, speciesSN, sites, years) {
 
 	print(paste("start getTabMinus1Mongo ", Sys.time()))
-	mongoConnection  <- mongo(collection = "output",db = "ecodata",url = "mongodb://localhost",verbose = FALSE,options = ssl_options())
+	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	res <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
@@ -272,7 +272,7 @@ getTabZeroMongo <- function (species, speciesSN, sites, years) {
 
 	print(paste("start getTabZeroMongo ", Sys.time()))
 
-	mongoConnection  <- mongo(collection = "output",db = "ecodata",url = "mongodb://localhost",verbose = FALSE,options = ssl_options())
+	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	or <- createOrEventDateCriteria(years)
 
@@ -413,7 +413,7 @@ createOrEventDateCriteria <- function (years) {
 getTabStandardCountMongo <- function (species, speciesSN, sites, years) {
 
 	print(paste("start getTabStandardCountMongo ", Sys.time()))
-	mongoConnection  <- mongo(collection = "output",db = "ecodata",url = "mongodb://localhost",verbose = FALSE,options = ssl_options())
+	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	
 	or <- createOrEventDateCriteria(years)

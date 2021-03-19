@@ -286,6 +286,9 @@ server <- function(input, output, session) {
            ind = input$indspecrtAnalyze)
   })
   
+
+  regIWCdat <<- getIWCData(pool)
+
   specrouteIWCAnalyze <- reactive({
     switch(input$specrtIWCAnalyze,
            all = regIWCdat$site,
@@ -321,8 +324,6 @@ server <- function(input, output, session) {
       rcdat <<- getSites(pool)
 
       regStdat <<- getBiotopSites(pool)
-
-      regIWCdat <<- getIWCData(pool)
 
       DoQuery(pool = pool, tab = input$tabsel, spec=specart(),
             specper = input$specper, selyrs = input$selyrs, line = input$linepoint,

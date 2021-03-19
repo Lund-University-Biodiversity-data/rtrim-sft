@@ -12,6 +12,7 @@ SpeciesWithShorterTimePeriods.xls<br/>
 
 # R packages required
 ```
+install.packages("shiny")
 install.packages("shinythemes")
 install.packages("shinycssloaders")
 install.packages("pool")

@@ -1,19 +1,22 @@
-library(shiny)
-library(shinythemes)
-library(DBI)
-library(pool)
-library(shinycssloaders)
-library(rtrim)
-source('UsefulFunctions.R')
-pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
+source('lib/config.R')
 
-#library(RPostgres)
-#pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft20201002', user='postgres')
+source('lib/db_functions.R')
+source('lib/UsefulFunctions.R')
 
-querysp <- "select art, arthela, latin, englishname, worldname, rank
-              from eurolist
-              order by art"
-spdat <<- dbGetQuery(pool, querysp)
+# for connection from windows computer, ran locally
+#pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
+
+pool<-dbConnect(RPostgres::Postgres(), dbname = postgres_database, user=postgres_user)
+
+spdat <- getSpeciesData(pool)
+
+# get matching species
+speciesMatch <- getMatchSpecies(pool)
+speciesMatchScientificNames <- getListBirdsUrl(bird_list_id)
+#speciesMatchScientificNames <- getListSpeciesBirdsScientificName(pool)
+
+#spdat <<- getSpeciesDataMongo()
+
 library(readxl)
 rangedat <- as.data.frame(read_excel('SpeciesWithShorterTimePeriods.xls', sheet = 'N vs S', skip = 3))
 rangedat$Latlimit <- as.numeric(gsub('[[:alpha:]]|[[:punct:]]|[[:blank:]]', '', rangedat$Latitudgräns))
@@ -23,37 +26,11 @@ startyr$Delprogram[startyr$Delprogram=='SomPKT'] <- 'totalsommar_pkt'
 startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
 startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
 
-queryrc <- "select karta as site, mitt_wgs84_lat as lat
-            from 
-            standardrutter_koordinater
-            union all
-            select pk.site, tp.lat
-            from
-            (select persnr || '_' || rnr as site, kartatx
-            from punktrutter) as pk,
-            (select kartatx, wgs84_lat as lat
-            from
-            koordinater_mittpunkt_topokartan) as tp
-            where pk.kartatx=tp.kartatx"
-rcdat <<- dbGetQuery(pool, queryrc)
 
-queryregSt <- "select karta, namn, lsk, lan, fjall104, fjall142
-             from
-             standardrutter_biotoper
-             order by karta"
-regStdat <<- dbGetQuery(pool, queryregSt)
-
-queryregIWC <- "select site, lokalnamn, ki, ev
-             from
-             iwc_koordinater
-             order by site"
-regIWCdat <<- dbGetQuery(pool, queryregIWC)
-
-## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
+ ## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
 onStop(function() {
   poolClose(pool)
 })
-
 
 
 ui <- fluidPage(theme = 'flatly',
@@ -105,6 +82,10 @@ ui <- fluidPage(theme = 'flatly',
                 #                          'Åkes superTRIMprogram'))),
                 tabsetPanel(
                   tabPanel('Get data',
+                           radioButtons('databasechoice', label = 'Select the database',
+                                        choices = list(`Good old sft database on PSQL` = 'psql',
+                                                       `Brand new mongoDB` = 'mongodb'),
+                                        selected = 'mongodb'),
                            radioButtons('tabsel', label = 'Select monitoring scheme',
                                         choices = list(Standardrutter = 'totalstandard',
                                                        Sommarpunktrutter = 'totalsommar_pkt',
@@ -313,9 +294,41 @@ server <- function(input, output, session) {
   })
   
   data <- eventReactive(input$sendquery,{
-    DoQuery(pool = pool, tab = input$tabsel, spec=specart(),
+
+    if (input$databasechoice == "mongodb") {
+      rcdat <<- getSitesMongo()
+      #print(rcdat)
+
+      sitesMatchMongo <- getMatchSitesMongo()
+
+      #regStdat <<- getBiotopSites(pool)
+      regStdat <<- getBiotopSitesMongo()
+
+      print(Sys.time())
+      dataMerge <<- getTotalStandardData (speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, years = input$selyrs)
+
+      #output$downloadData <- downloadHandler(
+      #  content = function(file) {
+      #    write.csv(dataMerge, file = paste0('extract/', input$filenameDat, '_', "totalstd", '_', gsub('[ :]', '_', Sys.time()), '.csv'),
+      #      row.names = FALSE)
+      #  }
+      #)
+
+      exportSaveData(dataMerge, savedat = input$savedat, filename = input$filenameDat)
+    }
+    else {
+
+      rcdat <<- getSites(pool)
+
+      regStdat <<- getBiotopSites(pool)
+
+      regIWCdat <<- getIWCData(pool)
+
+      DoQuery(pool = pool, tab = input$tabsel, spec=specart(),
             specper = input$specper, selyrs = input$selyrs, line = input$linepoint,
             savedat = input$savedat, filename = input$filenameDat)
+    } 
+    
   })
   
   resultout <- eventReactive(input$sendanalysis, {
@@ -355,7 +368,7 @@ server <- function(input, output, session) {
               from %s", input$tabsel)
     yrs <- dbGetQuery(pool, queryyr)
     sliderInput(inputId = 'selyrs', label = 'Set years',
-                min = yrs$minyr, max = yrs$maxyr, value = c(yrs$minyr, yrs$maxyr),
+                min = yrs$minyr, max = yrs$maxyr, value = c(2019, yrs$maxyr),
                 step = 1, sep = NULL)
   })
 
@@ -492,7 +505,7 @@ server <- function(input, output, session) {
       startyr[startyr$Delprogram==input$tabsel, c('Art', 'StartYear')]
     }
     byr <- ifelse(isolate(input$selyrsAnalyze[1])>1998, isolate(input$selyrsAnalyze[1]), 1998) 
-    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0(input$filenamepdf, '.pdf'))
+    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0('extract/', input$filenamepdf, '.pdf'))
   }, height = function() {
     nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
     px <- session$clientData$output_plot_width*nr/3

@@ -6,3 +6,4 @@
 *.xlsx
 *.rdata
 *.csv
+lib/config.R

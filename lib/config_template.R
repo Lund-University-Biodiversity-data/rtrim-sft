@@ -10,14 +10,14 @@ library(mongolite)
 #app_url <<- "http://127.0.0.1:6891"
 
 
-postgres_database <<- "sft_20210211"
+postgres_database <<- "sftdatabase"
 postgres_url <<- ""
 postgres_user <<- "postgres"
-postgres_password <<- "tamere"
+postgres_password <<- "blabla"
 
 mongo_database <<- "ecodata"
 mongo_url <<- "mongodb://localhost"
-mongo_user <<- "postgres"
-mongo_password <<- "tamere"
+mongo_user <<- "mongo"
+mongo_password <<- "blabla"
 
 bird_list_id <<- "dr158"

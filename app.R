@@ -8,7 +8,7 @@ source('UsefulFunctions.R')
 pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
 
 #library(RPostgres)
-#pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft20201002', user='postgres')
+#pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft20200203', user='postgres')
 
 querysp <- "select art, arthela, latin, englishname, worldname, rank
               from eurolist
@@ -492,7 +492,7 @@ server <- function(input, output, session) {
       startyr[startyr$Delprogram==input$tabsel, c('Art', 'StartYear')]
     }
     byr <- ifelse(isolate(input$selyrsAnalyze[1])>1998, isolate(input$selyrsAnalyze[1]), 1998) 
-    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0(input$filenamepdf, '.pdf'))
+    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0('extract/',input$filenamepdf, '.pdf'))
   }, height = function() {
     nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
     px <- session$clientData$output_plot_width*nr/3

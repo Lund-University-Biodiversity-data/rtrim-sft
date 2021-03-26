@@ -156,14 +156,16 @@ getBiotopSitesMongo <- function () {
 		vKarta[nbElt] <- x$karta
 		vName[nbElt] <- x$name
 		vCommonName[nbElt] <- x$commonName
-		vLan[nbElt] <- x$LAN
-		vLsk[nbElt] <- x$LSK
+		if (exists("x$LAN")) vLan[nbElt] <- x$LAN
+		else vLan[nbElt] <- "a"
+		if (exists("x$LSK")) vLsk[nbElt] <- x$LSK
+		else vLsk[nbElt] <- "b"
 		if (exists("x$Fjall104")) vF104[nbElt] <- x$Fjall104
 		else vF104[nbElt] <- FALSE
 		if (exists("x$Fjall104")) vF142[nbElt] <- x$Fjall142
 		else vF142[nbElt] <- FALSE
 	}
-
+	
 
 #	result <- array(c(vKarta, vCommonName, vLsk, vLan, vF104, vF142), dim=c(nbElt, 6, 1), dimnames=list(c(),c("karta", "namn", "lsk", "lan", "fjall104", "fjall142")))
 	result <- data.frame(vKarta, vCommonName, vLsk, vLan, vF104, vF142)

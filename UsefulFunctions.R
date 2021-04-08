@@ -405,7 +405,7 @@ AddNSspecies <- function(data = NULL, rangedata = NULL, coorddata = NULL){
       spd <- aggregate(count ~ site + time, data = subset(data, species%in%c('243', '244', '245')), sum, na.action = na.pass)
       spd$species <- '645'
       spd <- spd[, c('site', 'species', 'time', 'count')]
-    } else if (rangedata$speciesmain[i]%in%dat$species){
+    } else if (rangedata$speciesmain[i]%in%data$species){
       if (rangedata$smaller[i]){
         kix <- coorddata$lat < rangedata$Latlimit[i]
         } else {

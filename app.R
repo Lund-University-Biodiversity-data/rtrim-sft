@@ -410,7 +410,7 @@ server <- function(input, output, session) {
     if (useShorterPeriods & any(tables%in%c('totalsommar_pkt', 'totalvinter_pkt', 'totalstandard'))){
       # startyr <- read.xlsx('SpeciesWithShorterTimePeriods.xls', sheetName = 'StartYear', encoding = 'UTF-8',
       #                      stringsAsFactors = F)
-      startyr <- read_excel('/home/mathieu/Documents/repos/rtrim-interface-development/SpeciesWithShorterTimePeriods.xls', sheet = 'StartYear')
+      startyr <- read_excel(paste0(path_project, 'SpeciesWithShorterTimePeriods.xls'), sheet = 'StartYear')
       startyr$Delprogram[startyr$Delprogram=='SomPKT'] <- 'totalsommar_pkt'
       startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
       startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'

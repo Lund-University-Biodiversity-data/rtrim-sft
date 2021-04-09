@@ -17,8 +17,8 @@ DoSummariseResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NUL
   files2summarize <- paste(filenames, tables, sep = '_')
 
   reslist <- lapply(files2summarize, function(x) {
-    f <- findlatestFile(folder='/home/mathieu/Documents/repos/rtrim-interface-development/extract/', filename = paste0(x, '_'), dateform = '%Y-%m-%d_%H_%M_%S')
-    load(paste0('/home/mathieu/Documents/repos/rtrim-interface-development/extract/',f))
+    f <- findlatestFile(folder=path_project_extract, filename = paste0(x, '_'), dateform = '%Y-%m-%d_%H_%M_%S')
+    load(paste0(path_project_extract,f))
     return(output)
   })
   names(reslist) <- tables # name the elements of the list according to what system it comes from

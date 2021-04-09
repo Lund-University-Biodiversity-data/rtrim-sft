@@ -832,7 +832,7 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       #             file = paste0('Trimcombined_', paste(colnames[cix], collapse = '_'), '_', max(combtab$Yr), '_Figurritning.xlsx'),
       #             sheetName='TRIMCOMBO', row.names=FALSE, showNA=FALSE)
       write_xlsx(list(TRIMCOMBO=combtab[order(combtab$ART),]),
-                  path = paste0('/home/mathieu/Documents/repos/rtrim-interface-development/extract/','Trimcombined_', paste(colnames[cix], collapse = '_'), '_', max(combtab$Yr), '_Figurritning.xlsx'),
+                  path = paste0(path_project_extract,'Trimcombined_', paste(colnames[cix], collapse = '_'), '_', max(combtab$Yr), '_Figurritning.xlsx'),
                   format_headers = TRUE)
       
     }
@@ -868,7 +868,7 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       # write.xlsx2(singltab[order(singltab$ART),],
       #             file = paste0('Trim', colnames[i], '_', max(singltab$Yr), '_Figurritning.xlsx'), sheetName=paste0('TRIM', tabnames[i]), row.names=FALSE, showNA=FALSE)
       write_xlsx(singltab,
-                  path = paste0('/home/mathieu/Documents/repos/rtrim-interface-development/extract/','Trim', colnames[i], '_', min(uyrs), '-', max(uyrs), '_Figurritning.xlsx'), format_headers = TRUE)
+                  path = paste0(path_project_extract,'Trim', colnames[i], '_', min(uyrs), '-', max(uyrs), '_Figurritning.xlsx'), format_headers = TRUE)
     }
   }
   if (homepage) {
@@ -949,7 +949,7 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       Tabell[,apply(Tabell, 2, function(a) all(is.na(a)))] <- NULL
       tabn <- max(gsub('imputed.', '', grep('imputed.', names(Tabell), value = T)))
       names(Tabell) <- gsub('imputed.', '', names(Tabell))
-      fname <- paste0('/home/mathieu/Documents/repos/rtrim-interface-development/extract/','Trim', colnames[i], '_Tabeller.xlsx')
+      fname <- paste0(path_project_extract,'Trim', colnames[i], '_Tabeller.xlsx')
       hptabs <- list(TABELL = Tabell, Index = Index, Slopes = Slopes)
       # write.xlsx2(Tabell, file = fname, sheetName=paste('TABELL' , tabn), row.names=FALSE, showNA=FALSE)
       # write.xlsx2(Index, file = fname, sheetName="Index", row.names=FALSE, append=TRUE, showNA=FALSE)

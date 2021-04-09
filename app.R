@@ -8,7 +8,7 @@ source('UsefulFunctions.R')
 pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
 
 #library(RPostgres)
-#pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft20200203', user='postgres')
+#pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft', user='postgres')
 
 querysp <- "select art, arthela, latin, englishname, worldname, rank
               from eurolist
@@ -95,11 +95,12 @@ ui <- fluidPage(theme = 'flatly',
                             # }
                             "
                     )
-                  )
+                  ),
+                  tags$title("Åkes superTRIMprogram")
                 ),
                 titlePanel(title = div(img(style = 'display: inline-block;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                                        p(style = 'display: inline-block; margin: auto; width: 60%; text-align: center; font-size: 1.5em;',
-                                         'Åkes superTRIMprogram'))),
+                                         'Åkes superTRIMprogram - Original version from Martin'))),
                 # titlePanel(title = div(style = 'margin: auto; padding-bottom: 50px', p(style = 'display: block; text-align: center; font-size: 1.5em;',
                 #                          img(style = 'float: left; margin-bottom: 100px;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                 #                          'Åkes superTRIMprogram'))),

@@ -21,3 +21,5 @@ mongo_user <<- "mongo"
 mongo_password <<- "blabla"
 
 bird_list_id <<- "dr158"
+
+url_extract <<- "http://canmoveapp.ekol.lu.se/rtrim-sft-extract/"

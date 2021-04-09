@@ -2,6 +2,7 @@ source('lib/config.R')
 
 source('lib/db_functions.R')
 source('lib/UsefulFunctions.R')
+source('lib/SummariseFunctions.R')
 
 # for connection from windows computer, ran locally
 #pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
@@ -72,7 +73,8 @@ ui <- fluidPage(theme = 'flatly',
                             # }
                             "
                     )
-                  )
+                  ),
+                  tags$title("Åkes superTRIMprogram")
                 ),
                 titlePanel(title = div(img(style = 'display: inline-block;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                                        p(style = 'display: inline-block; margin: auto; width: 60%; text-align: center; font-size: 1.5em;',
@@ -236,7 +238,42 @@ ui <- fluidPage(theme = 'flatly',
                   ),
                   tabPanel('Display results',
                            plotOutput('plot')
+                  ),
+                  tabPanel('Summarise results',
+                           hr(),
+                           p('The generated files can be found => .'),
+                           tags$a("Download files folder", href=url_extract),
+                           hr(),
+                           textInput('filenameResSumm', label = 'Enter filename:', value = 'trimOutput'),
+                           textInput('yearBaseSumm', label = 'Base year:', value = '2002'),
+                           checkboxGroupInput('tableSumm', label = 'Select table(s)',
+                                                               choices = list(`totalstandard`= "totalstandard",
+                                                                              `totalsommar_pkt`= "totalsommar_pkt",
+                                                                              `totalvinter_pkt`= "totalvinter_pkt",
+                                                                              `totalvatmark`= "totalvatmark"),
+                                                               selected = "totalstandard", inline = TRUE),
+                           p('What are the name(s) of the "monitoring systems" (tables in SFT) that you want summaries for. What you leave within parenthesis are the systems you want to work with. Can be 1 or several systems. Can be "misc_censu".'),
+                           hr(),
+                           checkboxInput('singleSumm', label = 'Single files', value = TRUE),
+                           p('Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter '),
+                           hr(),
+                           checkboxInput('homepageSumm', label = 'Homepage files', value = TRUE),
+                           p('Do you want "homepage" files (you will get one for each system)? This is the "overview data" file.'),
+                           hr(),
+                           checkboxInput('shorterPeriodSumm', label = 'Homepage files', value = TRUE),
+                           p('Do you want to use shorter time periods for some species? (i.e. use the information in "SpeciesWithShorterTimePeriods.xls")<br> If the system(s) you are running does not have such information in the xls-file it does not matter how you specify this.'),
+                           hr(),
+                           radioButtons('langSumm', label = 'Language',
+                                        choices = list(`SE` = "SE",
+                                                       `EN` = "EN",
+                                                       `WD` = "WD"),
+                                        selected = "SE", inline = TRUE),
+                           hr(),
+                           actionButton("sendquerysumm", "Generate excel files"),
+                           withSpinner(verbatimTextOutput('rtSumm'), proxy.height = '100px'),
+                                            
                   )
+
                   # tabPanel('Handle results',
                   #          selectInput('displaysp', label = 'Species to display',
                   #                      choices = as.list(names(resultout())))
@@ -364,6 +401,28 @@ server <- function(input, output, session) {
                  saveresult = input$saveresult, filename = input$filenameRes)
   })
   
+  summarizeRt <- eventReactive(input$sendquerysumm, {
+
+    useShorterPeriods <- input$shorterPeriodSumm
+    tables <- input$tableSumm
+
+        ## Get info on species specific startyear (has been used in the app analyses as well)
+    if (useShorterPeriods & any(tables%in%c('totalsommar_pkt', 'totalvinter_pkt', 'totalstandard'))){
+      # startyr <- read.xlsx('SpeciesWithShorterTimePeriods.xls', sheetName = 'StartYear', encoding = 'UTF-8',
+      #                      stringsAsFactors = F)
+      startyr <- read_excel('/home/mathieu/Documents/repos/rtrim-interface-development/SpeciesWithShorterTimePeriods.xls', sheet = 'StartYear')
+      startyr$Delprogram[startyr$Delprogram=='SomPKT'] <- 'totalsommar_pkt'
+      startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
+      startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
+    } else {
+      startyr <- NULL
+    }
+
+    DoSummariseResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, single=input$singleSumm) 
+
+
+  })
+
   output$yrSlider <- renderUI({
     queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
               from %s", input$tabsel)
@@ -492,6 +551,9 @@ server <- function(input, output, session) {
   #   as.integer(input$modeltype)})
   output$testtext <- renderPrint({
     session$clientData$output_plot_width})
+
+  output$rtSumm <- renderPrint({
+    summarizeRt()[[1]]})
     
   output$dataTable <- DT::renderDataTable({
     DT::datatable(data(), filter='top')

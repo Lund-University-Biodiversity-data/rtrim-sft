@@ -18,6 +18,7 @@ install.packages("shinycssloaders")
 install.packages("pool")
 install.packages("rtrim")
 install.packages("readxl")
+install.packages("writexl")
 ```
 
 # To use it without ODBC connector, but directly to postgres

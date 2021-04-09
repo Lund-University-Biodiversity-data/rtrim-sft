@@ -165,7 +165,7 @@ getBiotopSitesMongo <- function () {
 		if (exists("x$Fjall104")) vF142[nbElt] <- x$Fjall142
 		else vF142[nbElt] <- FALSE
 	}
-	
+
 
 #	result <- array(c(vKarta, vCommonName, vLsk, vLan, vF104, vF142), dim=c(nbElt, 6, 1), dimnames=list(c(),c("karta", "namn", "lsk", "lan", "fjall104", "fjall142")))
 	result <- data.frame(vKarta, vCommonName, vLsk, vLan, vF104, vF142)

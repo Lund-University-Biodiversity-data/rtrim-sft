@@ -9,7 +9,7 @@ library(writexl)
 
 
 
-DoSummariseResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NULL, startyr=NULL, homepage=NULL, single=NULL, combinations = NULL) {
+DoSummariseResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NULL, startyr=NULL, homepage=NULL, single=NULL, combinations = NULL, lang=NULL) {
 
   ## Read in rdata-files with results
   ## Finds and read in the latest file produced for each monitoring system (and called trimOutput-something...)

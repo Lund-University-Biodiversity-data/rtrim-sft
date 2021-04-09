@@ -418,7 +418,7 @@ server <- function(input, output, session) {
       startyr <- NULL
     }
 
-    DoSummariseResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, single=input$singleSumm) 
+    DoSummariseResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, single=input$singleSumm, lang=input$langSumm) 
 
 
   })

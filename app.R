@@ -237,7 +237,18 @@ ui <- fluidPage(theme = 'flatly',
                            hr()
                   ),
                   tabPanel('Display results',
-                           plotOutput('plot')
+                           #plotOutput('plot' )
+                           hr(),
+                           textInput('displaysize', label = 'Result size (XX%):', value = '75%'),
+                           hr(),
+                           withSpinner(uiOutput("plotResultsDisplay")),
+                           hr()
+                           #hr(),
+                           #textInput('displaysize', label = 'Result size (XX%):', value = '50%'),
+                           #hr(),                           
+                           #actionButton("launchDisplayResuts", "Display the graphs"),
+                           #hr(),
+                           #withSpinner(uiOutput('rtDisplayResults'))
                   ),
                   tabPanel('Summarise results',
                            hr(),
@@ -400,7 +411,14 @@ server <- function(input, output, session) {
                  startyr = styr, tabell = input$tabsel,
                  saveresult = input$saveresult, filename = input$filenameRes)
   })
-  
+
+
+  #rtResults <- eventReactive(input$launchDisplayResuts, {
+   # print("youhou")
+
+    #plotOutput('plot')
+ # })
+
   summarizeRt <- eventReactive(input$sendquerysumm, {
 
     useShorterPeriods <- input$shorterPeriodSumm
@@ -491,6 +509,8 @@ server <- function(input, output, session) {
     )
   })
   
+  
+
   output$lskCheckboxAnalyze <- renderUI({
     lsks <- sort(unique(regStdat$lsk))
     lsklist <- as.list(lsks)
@@ -503,7 +523,9 @@ server <- function(input, output, session) {
              )
     )
   })
-  
+
+
+
   # output$fjlCheckboxAnalyze <- renderUI({
   #   fjls <- sort(unique(regStdat$fjall))
   #   fjllist <- as.list(fjls)
@@ -554,11 +576,15 @@ server <- function(input, output, session) {
 
   output$rtSumm <- renderPrint({
     summarizeRt()[[1]]})
-    
+  
+  output$rtDisplayResults <- renderUI({
+    rtResults()[[1]]})
+
   output$dataTable <- DT::renderDataTable({
     DT::datatable(data(), filter='top')
     })
   
+
   output$plot <- renderPlot({
     worked <- sapply(resultout(), function(x) inherits(x$value,'trim'))
     restoplot <- resultout()[worked]
@@ -573,6 +599,14 @@ server <- function(input, output, session) {
     nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
     px <- session$clientData$output_plot_width*nr/3
     return(px)
+  }
+  )
+
+  # get the plot size
+  plotWidth <- reactive(input$displaysize)
+  # render it
+  output$plotResultsDisplay <- renderUI({
+    plotOutput("plot", width = plotWidth())
   })
   
 }

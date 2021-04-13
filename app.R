@@ -243,12 +243,6 @@ ui <- fluidPage(theme = 'flatly',
                            hr(),
                            withSpinner(uiOutput("plotResultsDisplay")),
                            hr()
-                           #hr(),
-                           #textInput('displaysize', label = 'Result size (XX%):', value = '50%'),
-                           #hr(),                           
-                           #actionButton("launchDisplayResuts", "Display the graphs"),
-                           #hr(),
-                           #withSpinner(uiOutput('rtDisplayResults'))
                   ),
                   tabPanel('Summarise results',
                            hr(),
@@ -256,7 +250,8 @@ ui <- fluidPage(theme = 'flatly',
                            tags$a("Download files folder", href=url_extract),
                            hr(),
                            textInput('filenameResSumm', label = 'Enter filename:', value = 'trimOutput'),
-                           textInput('yearBaseSumm', label = 'Base year:', value = '2002'),
+                           #textInput('yearBaseSumm', label = 'Base year:', value = '2002'),
+                           uiOutput('yearBaseSummAuto'),
                            checkboxGroupInput('tableSumm', label = 'Select table(s)',
                                                                choices = list(`totalstandard`= "totalstandard",
                                                                               `totalsommar_pkt`= "totalsommar_pkt",
@@ -456,6 +451,11 @@ server <- function(input, output, session) {
                 min = yrs[1], max = yrs[2], value = c(yrs[1], yrs[2]),
                 step = 1, sep = NULL)
   })
+
+  output$yearBaseSummAuto <- renderUI({
+    yrs <- range(data()$time)
+    tags$div(textInput('yearBaseSumm', label = 'Base year:', value = yrs[1]))
+  })
     
   output$specCheckbox <- renderUI({
     queryspec <- sprintf("select distinct art
@@ -509,8 +509,6 @@ server <- function(input, output, session) {
     )
   })
   
-  
-
   output$lskCheckboxAnalyze <- renderUI({
     lsks <- sort(unique(regStdat$lsk))
     lsklist <- as.list(lsks)
@@ -525,19 +523,6 @@ server <- function(input, output, session) {
   })
 
 
-
-  # output$fjlCheckboxAnalyze <- renderUI({
-  #   fjls <- sort(unique(regStdat$fjall))
-  #   fjllist <- as.list(fjls)
-  #   tags$div(tags$div(strong(p("Select Mountains (Fjäll) or not (Nej)"))),
-  #            tags$div(align = 'left',
-  #                     #class = 'multicol8',
-  #                     checkboxGroupInput(inputId = 'fjlspecrtAnalyze', label = NULL,
-  #                                        choices = fjllist,
-  #                                        selected = NULL)
-  #            )
-  #   )
-  # })
   output$fjlCheckboxAnalyze <- renderUI({
     # fjls <- sort(unique(regStdat$fjall))
     # fjllist <- as.list(fjls)

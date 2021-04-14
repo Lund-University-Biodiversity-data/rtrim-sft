@@ -239,7 +239,7 @@ ui <- fluidPage(theme = 'flatly',
                   tabPanel('Display results',
                            #plotOutput('plot' )
                            hr(),
-                           textInput('displaysize', label = 'Result size (XX%):', value = '75%'),
+                           textInput('displaysize', label = 'Result size (XX%):', value = '50%'),
                            hr(),
                            withSpinner(uiOutput("plotResultsDisplay")),
                            hr()

@@ -1,19 +1,24 @@
-library(shiny)
-library(shinythemes)
-library(DBI)
-library(pool)
-library(shinycssloaders)
-library(rtrim)
-source('UsefulFunctions.R')
-pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
+source('lib/config.R')
 
-#library(RPostgres)
-#pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft', user='postgres')
+source('lib/db_functions.R')
+source('lib/UsefulFunctions.R')
+source('lib/SummariseFunctions.R')
 
-querysp <- "select art, arthela, latin, englishname, worldname, rank
-              from eurolist
-              order by art"
-spdat <<- dbGetQuery(pool, querysp)
+# for connection from windows computer, ran locally
+#pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
+
+pool<-dbConnect(RPostgres::Postgres(), dbname = postgres_database, user=postgres_user)
+
+spdat <- getSpeciesData(pool)
+
+# get matching species
+speciesMatch <- getMatchSpecies(pool)
+speciesMatchScientificNames <- getListBirdsUrl(bird_list_id)
+#speciesMatchScientificNames <- getListSpeciesBirdsScientificName(pool)
+
+#spdat <<- getSpeciesDataMongo()
+
+
 library(readxl)
 rangedat <- as.data.frame(read_excel('SpeciesWithShorterTimePeriods.xls', sheet = 'N vs S', skip = 3))
 rangedat$Latlimit <- as.numeric(gsub('[[:alpha:]]|[[:punct:]]|[[:blank:]]', '', rangedat$Latitudgräns))
@@ -23,37 +28,11 @@ startyr$Delprogram[startyr$Delprogram=='SomPKT'] <- 'totalsommar_pkt'
 startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
 startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
 
-queryrc <- "select karta as site, mitt_wgs84_lat as lat
-            from 
-            standardrutter_koordinater
-            union all
-            select pk.site, tp.lat
-            from
-            (select persnr || '_' || rnr as site, kartatx
-            from punktrutter) as pk,
-            (select kartatx, wgs84_lat as lat
-            from
-            koordinater_mittpunkt_topokartan) as tp
-            where pk.kartatx=tp.kartatx"
-rcdat <<- dbGetQuery(pool, queryrc)
 
-queryregSt <- "select karta, namn, lsk, lan, fjall104, fjall142
-             from
-             standardrutter_biotoper
-             order by karta"
-regStdat <<- dbGetQuery(pool, queryregSt)
-
-queryregIWC <- "select site, lokalnamn, ki, ev
-             from
-             iwc_koordinater
-             order by site"
-regIWCdat <<- dbGetQuery(pool, queryregIWC)
-
-## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
+ ## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
 onStop(function() {
   poolClose(pool)
 })
-
 
 
 ui <- fluidPage(theme = 'flatly',
@@ -100,25 +79,31 @@ ui <- fluidPage(theme = 'flatly',
                 ),
                 titlePanel(title = div(img(style = 'display: inline-block;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                                        p(style = 'display: inline-block; margin: auto; width: 60%; text-align: center; font-size: 1.5em;',
-                                         'Åkes superTRIMprogram - Original version from Martin'))),
+                                         'Åkes superTRIMprogram - MongoDB version'))),
                 # titlePanel(title = div(style = 'margin: auto; padding-bottom: 50px', p(style = 'display: block; text-align: center; font-size: 1.5em;',
                 #                          img(style = 'float: left; margin-bottom: 100px;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                 #                          'Åkes superTRIMprogram'))),
                 tabsetPanel(
                   tabPanel('Get data',
+                           radioButtons('databasechoice', label = 'Select the database',
+                                        choices = list(`Good old sft database on PSQL` = 'psql',
+                                                       `Brand new mongoDB` = 'mongodb'),
+                                        selected = 'mongodb'),
                            radioButtons('tabsel', label = 'Select monitoring scheme',
-                                        choices = list(Standardrutter = 'totalstandard',
-                                                       Sommarpunktrutter = 'totalsommar_pkt',
-                                                       Vinterpunktrutter =  'totalvinter_pkt',
-                                                       `Sjöfågeltaxering Vår` = 'totalvatmark',
-                                                       `IWC Januari` = 'total_iwc_januari',
-                                                       `IWC September` = 'total_iwc_september',
-                                                       `Miscellaneous system` = 'misc_census'),
+                                        choices = list(Standardrutter = 'totalstandard'
+                                                       #, Sommarpunktrutter = 'totalsommar_pkt',
+                                                       #Vinterpunktrutter =  'totalvinter_pkt',
+                                                       #`Sjöfågeltaxering Vår` = 'totalvatmark',
+                                                       #`IWC Januari` = 'total_iwc_januari',
+                                                       #`IWC September` = 'total_iwc_september',
+                                                       #`Miscellaneous system` = 'misc_census'
+                                                       ),
                                         selected = 'totalstandard', inline = FALSE, width = NULL),
                            conditionalPanel(condition = 'input.tabsel == "totalstandard"',
                                             radioButtons('linepoint', label = 'Select subscheme',
-                                                         choices = list(Lines = TRUE,
-                                                                        Points = FALSE),
+                                                         choices = list(Lines = TRUE
+                                                                        #, Points = FALSE
+                                                                        ),
                                                          selected = TRUE, inline = TRUE)
                                             ),
                            conditionalPanel(condition = 'input.tabsel == "totalvinter_pkt"',
@@ -135,11 +120,12 @@ ui <- fluidPage(theme = 'flatly',
                            hr(),
                            radioButtons('specsp', label = 'Select species set',
                                         choices = list(`All available bird species` = 'all',
-                                                       `All available mammal species` = 'mammals',
-                                                       `Farmland Bird Index` = 'FBI',
-                                                       `Environmental Objective 13` = 'eo13',
-                                                       `Fredriks urval IWC Januari` = 'iwcjan',
-                                                       `Individual species` = 'ind'),
+                                                       #`All available mammal species` = 'mammals',
+                                                       #`Farmland Bird Index` = 'FBI',
+                                                       #`Environmental Objective 13` = 'eo13',
+                                                       #`Fredriks urval IWC Januari` = 'iwcjan',
+                                                       `Individual species` = 'ind'
+                                                       ),
                                         selected = 'all'),
                            conditionalPanel(condition = 'input.specsp == "ind"',
                                             uiOutput('specCheckbox')),
@@ -194,10 +180,9 @@ ui <- fluidPage(theme = 'flatly',
                            fluidRow(column(6,
                                            radioButtons('specspAnalyze', label = 'Select species set',
                                                 choices = list(`All available species` = 'all',
-                                                              # `All + northern/southern` = 'allNS',
-                                                               `Farmland Bird Index` = 'FBI',
-                                                               `Environmental Objective 13` = 'eo13',
-                                                               `Fredriks urval IWC Januari` = 'iwcjan',
+                                                               #, `Farmland Bird Index` = 'FBI',
+                                                               #`Environmental Objective 13` = 'eo13',
+                                                               #`Fredriks urval IWC Januari` = 'iwcjan',
                                                                `Individual species` = 'ind'),
                                                 selected = 'all')),
                                     column(4,
@@ -209,14 +194,15 @@ ui <- fluidPage(theme = 'flatly',
                            conditionalPanel(condition = 'input.tabsel == "totalstandard"',
                                             fluidRow(column(4,
                                                             radioButtons('specrtAnalyze', label = 'Select routes to include',
-                                                                         choices = list(`All availble routes` = 'all',
-                                                                                        `Counties (län)` = 'lan',
-                                                                                        `Province (landskap)` = 'lsk',
-                                                                                        `Mountains (Fjällen) n=104` = 'fjl104',
-                                                                                        `Mountains (Fjällen) n=142` = 'fjl142',
-                                                                                        `Southern routes (<60 N)` = 'S',
-                                                                                        `Northern routes (>60 N)` = 'N',
-                                                                                        `Individual routes` = 'ind'),
+                                                                         choices = list(`All available routes` = 'all'
+                                                                                        #,`Counties (län)` = 'lan',
+                                                                                        #`Province (landskap)` = 'lsk',
+                                                                                        #`Mountains (Fjällen) n=104` = 'fjl104',
+                                                                                        #`Mountains (Fjällen) n=142` = 'fjl142',
+                                                                                        #`Southern routes (<60 N)` = 'S',
+                                                                                        #`Northern routes (>60 N)` = 'N',
+                                                                                        #`Individual routes` = 'ind'
+                                                                                        ),
                                                                          selected = 'all')),
                                                      column(8,
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "lan"',
@@ -255,8 +241,49 @@ ui <- fluidPage(theme = 'flatly',
                            hr()
                   ),
                   tabPanel('Display results',
-                           plotOutput('plot')
+                           #plotOutput('plot' )
+                           hr(),
+                           textInput('displaysize', label = 'Result size (XX%):', value = '50%'),
+                           hr(),
+                           withSpinner(uiOutput("plotResultsDisplay")),
+                           hr()
+                  ),
+                  tabPanel('Summarise results',
+                           hr(),
+                           p('The generated files can be found => .'),
+                           tags$a("Download files folder", href=url_extract),
+                           hr(),
+                           textInput('filenameResSumm', label = 'Enter filename:', value = 'trimOutput'),
+                           #textInput('yearBaseSumm', label = 'Base year:', value = '2002'),
+                           uiOutput('yearBaseSummAuto'),
+                           checkboxGroupInput('tableSumm', label = 'Select table(s)',
+                                                               choices = list(`totalstandard`= "totalstandard",
+                                                                              `totalsommar_pkt`= "totalsommar_pkt",
+                                                                              `totalvinter_pkt`= "totalvinter_pkt",
+                                                                              `totalvatmark`= "totalvatmark"),
+                                                               selected = "totalstandard", inline = TRUE),
+                           p('What are the name(s) of the "monitoring systems" (tables in SFT) that you want summaries for. What you leave within parenthesis are the systems you want to work with. Can be 1 or several systems. Can be "misc_censu".'),
+                           hr(),
+                           checkboxInput('singleSumm', label = 'Single files', value = TRUE),
+                           p('Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter '),
+                           hr(),
+                           checkboxInput('homepageSumm', label = 'Homepage files', value = TRUE),
+                           p('Do you want "homepage" files (you will get one for each system)? This is the "overview data" file.'),
+                           hr(),
+                           checkboxInput('shorterPeriodSumm', label = 'Homepage files', value = TRUE),
+                           p('Do you want to use shorter time periods for some species? (i.e. use the information in "SpeciesWithShorterTimePeriods.xls")<br> If the system(s) you are running does not have such information in the xls-file it does not matter how you specify this.'),
+                           hr(),
+                           radioButtons('langSumm', label = 'Language',
+                                        choices = list(`SE` = "SE",
+                                                       `EN` = "EN",
+                                                       `WD` = "WD"),
+                                        selected = "SE", inline = TRUE),
+                           hr(),
+                           actionButton("sendquerysumm", "Generate excel files"),
+                           withSpinner(verbatimTextOutput('rtSumm'), proxy.height = '100px'),
+                                            
                   )
+
                   # tabPanel('Handle results',
                   #          selectInput('displaysp', label = 'Species to display',
                   #                      choices = as.list(names(resultout())))
@@ -306,6 +333,9 @@ server <- function(input, output, session) {
            ind = input$indspecrtAnalyze)
   })
   
+
+  regIWCdat <<- getIWCData(pool)
+
   specrouteIWCAnalyze <- reactive({
     switch(input$specrtIWCAnalyze,
            all = regIWCdat$site,
@@ -314,9 +344,39 @@ server <- function(input, output, session) {
   })
   
   data <- eventReactive(input$sendquery,{
-    DoQuery(pool = pool, tab = input$tabsel, spec=specart(),
+
+    if (input$databasechoice == "mongodb") {
+      rcdat <<- getSitesMongo()
+      #print(rcdat)
+
+      sitesMatchMongo <- getMatchSitesMongo()
+
+      #regStdat <<- getBiotopSites(pool)
+      regStdat <<- getBiotopSitesMongo()
+
+      print(Sys.time())
+      dataMerge <<- getTotalStandardData (speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, years = input$selyrs)
+
+      #output$downloadData <- downloadHandler(
+      #  content = function(file) {
+      #    write.csv(dataMerge, file = paste0('extract/', input$filenameDat, '_', "totalstd", '_', gsub('[ :]', '_', Sys.time()), '.csv'),
+      #      row.names = FALSE)
+      #  }
+      #)
+
+      exportSaveData(dataMerge, savedat = input$savedat, filename = input$filenameDat)
+    }
+    else {
+
+      rcdat <<- getSites(pool)
+
+      regStdat <<- getBiotopSites(pool)
+
+      DoQuery(pool = pool, tab = input$tabsel, spec=specart(),
             specper = input$specper, selyrs = input$selyrs, line = input$linepoint,
             savedat = input$savedat, filename = input$filenameDat)
+    } 
+    
   })
   
   resultout <- eventReactive(input$sendanalysis, {
@@ -350,13 +410,42 @@ server <- function(input, output, session) {
                  startyr = styr, tabell = input$tabsel,
                  saveresult = input$saveresult, filename = input$filenameRes)
   })
-  
+
+
+  #rtResults <- eventReactive(input$launchDisplayResuts, {
+   # print("youhou")
+
+    #plotOutput('plot')
+ # })
+
+  summarizeRt <- eventReactive(input$sendquerysumm, {
+
+    useShorterPeriods <- input$shorterPeriodSumm
+    tables <- input$tableSumm
+
+        ## Get info on species specific startyear (has been used in the app analyses as well)
+    if (useShorterPeriods & any(tables%in%c('totalsommar_pkt', 'totalvinter_pkt', 'totalstandard'))){
+      # startyr <- read.xlsx('SpeciesWithShorterTimePeriods.xls', sheetName = 'StartYear', encoding = 'UTF-8',
+      #                      stringsAsFactors = F)
+      startyr <- read_excel(paste0(path_project, 'SpeciesWithShorterTimePeriods.xls'), sheet = 'StartYear')
+      startyr$Delprogram[startyr$Delprogram=='SomPKT'] <- 'totalsommar_pkt'
+      startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
+      startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
+    } else {
+      startyr <- NULL
+    }
+
+    DoSummariseResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, single=input$singleSumm, lang=input$langSumm) 
+
+
+  })
+
   output$yrSlider <- renderUI({
     queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
               from %s", input$tabsel)
     yrs <- dbGetQuery(pool, queryyr)
     sliderInput(inputId = 'selyrs', label = 'Set years',
-                min = yrs$minyr, max = yrs$maxyr, value = c(yrs$minyr, yrs$maxyr),
+                min = yrs$minyr, max = yrs$maxyr, value = c(2017, yrs$maxyr),
                 step = 1, sep = NULL)
   })
 
@@ -365,6 +454,11 @@ server <- function(input, output, session) {
     sliderInput(inputId = 'selyrsAnalyze', label = 'Set years',
                 min = yrs[1], max = yrs[2], value = c(yrs[1], yrs[2]),
                 step = 1, sep = NULL)
+  })
+
+  output$yearBaseSummAuto <- renderUI({
+    yrs <- range(data()$time)
+    tags$div(textInput('yearBaseSumm', label = 'Base year:', value = yrs[1]))
   })
     
   output$specCheckbox <- renderUI({
@@ -431,19 +525,8 @@ server <- function(input, output, session) {
              )
     )
   })
-  
-  # output$fjlCheckboxAnalyze <- renderUI({
-  #   fjls <- sort(unique(regStdat$fjall))
-  #   fjllist <- as.list(fjls)
-  #   tags$div(tags$div(strong(p("Select Mountains (Fjäll) or not (Nej)"))),
-  #            tags$div(align = 'left',
-  #                     #class = 'multicol8',
-  #                     checkboxGroupInput(inputId = 'fjlspecrtAnalyze', label = NULL,
-  #                                        choices = fjllist,
-  #                                        selected = NULL)
-  #            )
-  #   )
-  # })
+
+
   output$fjlCheckboxAnalyze <- renderUI({
     # fjls <- sort(unique(regStdat$fjall))
     # fjllist <- as.list(fjls)
@@ -479,11 +562,18 @@ server <- function(input, output, session) {
   #   as.integer(input$modeltype)})
   output$testtext <- renderPrint({
     session$clientData$output_plot_width})
-    
+
+  output$rtSumm <- renderPrint({
+    summarizeRt()[[1]]})
+  
+  output$rtDisplayResults <- renderUI({
+    rtResults()[[1]]})
+
   output$dataTable <- DT::renderDataTable({
     DT::datatable(data(), filter='top')
     })
   
+
   output$plot <- renderPlot({
     worked <- sapply(resultout(), function(x) inherits(x$value,'trim'))
     restoplot <- resultout()[worked]
@@ -498,6 +588,14 @@ server <- function(input, output, session) {
     nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
     px <- session$clientData$output_plot_width*nr/3
     return(px)
+  }
+  )
+
+  # get the plot size
+  plotWidth <- reactive(input$displaysize)
+  # render it
+  output$plotResultsDisplay <- renderUI({
+    plotOutput("plot", width = plotWidth())
   })
   
 }

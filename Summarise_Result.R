@@ -9,7 +9,7 @@
 #################################################
 
 # What base year do you want?
-base <- 2002
+base <- 2018
 
 # Do you want to use shorter time periods for some species?
 # (i.e. use the information in "SpeciesWithShorterTimePeriods.xls")
@@ -17,29 +17,34 @@ base <- 2002
 useShorterPeriods <- TRUE
 
 # What is the "general" name of the output-files (i.e. what you entered as filename för the rdata-file in the app)
-filenames <- 'trimOutput_NordicBorealNon-Pass'
-#filenames <- 'trimOutput' 
+#filenames <- 'trimOutput_BD2002'
+filenames <- 'trimOutput' 
 
 # What are the name(s) of the "monitoring systems" (tables in SFT) that you want summaries for. What you leave within parenthesis
 # are the systems you want to work with. Can be 1 or several systems. Can be 'misc_census'. 
-tables <- c('misc_census')
+#tables <- c('totalvinter_pkt')
+tables <- c('totalstandard')
+#tables <- c('totalvatmark')
 #tables <- c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt')
+#tables <- c('totalstandard', 'totalsommar_pkt')
 
 # What short (one?) letter kombination should identify the monitoring system(s) in the Index and Convergence columns? Should be
 # the same number of factors as in the previous code line. You can leave it empty by ''
-shortcolumn <- c('MC')
-# shortcolumn <- c('', 'S', 'V')
-# shortcolumn <- c('T', 'S', 'V')
+shortcolumn <- c('T')
+#shortcolumn <- c('T', 'S', 'V')
+#shortcolumn <- c('T', 'S')
 
 # What short (one?) letter kombination should identify the monitoring system(s) in tabs? Should also be the same number of factors
 # as in the previous code line. You can leave it empty by ''
-shorttab <- c('MC')
+shorttab <- c('T')
+#shorttab <- c('ST', 'S')
 #shorttab <- c('ST', 'S', 'V')
 
 # Which combinations of monitoring systems do you want to produce (trippel, komb etc)?
 # Make a list of vectors specifying the indices (in the desired order) of the systems you want to combine.
 # The numbers relate to the order of systems assigned above under "tables" 
-#combinations <- list(c(3, 2, 1), c(2, 1))
+#combinations <- list(c(3, 2, 1), c(2, 1))  # Denna skapar  både Trippel och Komb
+#combinations <- list(c(2, 1))
 combinations <- NULL
 
 # Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter 
@@ -69,23 +74,24 @@ library(rtrim) # Needed to use functions for extracting info from "trim"-objects
 #library(xlsx) # Needed to save data to Excel-files
 library(readxl)
 library(writexl)
-source('UsefulFunctions.R') # A bunch of useful functions
+source('/home/mathieu/Documents/repos/rtrim-interface-development/lib/UsefulFunctions.R') # A bunch of useful functions
 
 ## Get Eurolist data
-pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
+#pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
+pool<-dbConnect(RPostgres::Postgres(), dbname = postgres_database, user=postgres_user)
 querysp <- "select art, arthela, latin, englishname, worldname, rank
               from eurolist
               where art<'700'
               order by art"
 spdat <- dbGetQuery(pool, querysp)
-poolClose(pool)
+#poolClose(pool)
 
 
 ## Get info on species specific startyear (has been used in the app analyses as well)
 if (useShorterPeriods & any(tables%in%c('totalsommar_pkt', 'totalvinter_pkt', 'totalstandard'))){
   # startyr <- read.xlsx('SpeciesWithShorterTimePeriods.xls', sheetName = 'StartYear', encoding = 'UTF-8',
   #                      stringsAsFactors = F)
-  startyr <- read_excel('SpeciesWithShorterTimePeriods.xls', sheet = 'StartYear')
+  startyr <- read_excel('/home/mathieu/Documents/repos/rtrim-interface-development/SpeciesWithShorterTimePeriods.xls', sheet = 'StartYear')
   startyr$Delprogram[startyr$Delprogram=='SomPKT'] <- 'totalsommar_pkt'
   startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
   startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
@@ -100,8 +106,8 @@ if (useShorterPeriods & any(tables%in%c('totalsommar_pkt', 'totalvinter_pkt', 't
 files2summarize <- paste(filenames, tables, sep = '_')
 
 reslist <- lapply(files2summarize, function(x) {
-  f <- findlatestFile(filename = paste0(x, '_'), dateform = '%Y-%m-%d_%H_%M_%S')
-  load(f)
+  f <- findlatestFile(folder='/home/mathieu/Documents/repos/rtrim-interface-development/extract/', filename = paste0(x, '_'), dateform = '%Y-%m-%d_%H_%M_%S')
+  load(paste0('/home/mathieu/Documents/repos/rtrim-interface-development/extract/',f))
   return(output)
 })
 names(reslist) <- tables # name the elements of the list according to what system it comes from
@@ -158,6 +164,15 @@ for (us in usps_num){
 
 MakeXlsFile(resultout, colnames = shortcolumn, tabnames = shorttab, specieslist = sps_char, specieslanguage = lang,
             combinations = combinations, single = single, homepage = homepage)
+
+
+
+
+
+
+
+
+
 
 
 

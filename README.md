@@ -13,11 +13,13 @@ extract (folder, writing right required)<br/>
 
 # R packages required
 ```
+install.packages("shiny")
 install.packages("shinythemes")
 install.packages("shinycssloaders")
 install.packages("pool")
 install.packages("rtrim")
 install.packages("readxl")
+install.packages("writexl")
 ```
 
 # To use it without ODBC connector, but directly to postgres

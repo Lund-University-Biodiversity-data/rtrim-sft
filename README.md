@@ -1,3 +1,6 @@
+** ORIGINAL VERSION OF MARTIN'S RTRIM APP **
+
+
 # Rtrim shinyapp development
 This is a project to develop a shinyapp interface for using rtrim to analyse bird trends from Svensk Fågeltaxering (SFT). It includes fetching data from the SFT server, running rtrim analyses and handle the results (some displaying and producing output-files (.xlsx)). 
 

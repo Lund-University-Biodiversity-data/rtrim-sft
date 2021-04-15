@@ -12,7 +12,7 @@ Summarise_Results.R<br/>
 www (folder)<br/>
 SpeciesWithShorterTimePeriods.xls<br/>
 
-extract (folder, writing right required)<br/>
+extract (folder, not available for download, create your own with writing rights)<br/>
 
 # R packages required
 ```

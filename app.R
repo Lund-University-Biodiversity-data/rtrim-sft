@@ -4,30 +4,33 @@ source('lib/db_functions.R')
 source('lib/UsefulFunctions.R')
 source('lib/SummariseFunctions.R')
 
+
+library(DTedit)
+
+
 # for connection from windows computer, ran locally
 #pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
 
 pool<-dbConnect(RPostgres::Postgres(), dbname = postgres_database, user=postgres_user)
+poolParams<-dbConnect(RPostgres::Postgres(), dbname = postgres_database_parameters, user=postgres_user)
 
 spdat <- getSpeciesData(pool)
+#spdat <<- getSpeciesDataMongo()
 
 # get matching species
 speciesMatch <- getMatchSpecies(pool)
 speciesMatchScientificNames <- getListBirdsUrl(bird_list_id)
 #speciesMatchScientificNames <- getListSpeciesBirdsScientificName(pool)
 
-#spdat <<- getSpeciesDataMongo()
 
-
-library(readxl)
-rangedat <- as.data.frame(read_excel('SpeciesWithShorterTimePeriods.xls', sheet = 'N vs S', skip = 3))
+rangedat <- getLimitNorthSouth(poolParams)
 rangedat$Latlimit <- as.numeric(gsub('[[:alpha:]]|[[:punct:]]|[[:blank:]]', '', rangedat$Latitudgräns))
 rangedat$smaller <- grepl('S', rangedat$Latitudgräns)
-startyr <- as.data.frame(read_excel('SpeciesWithShorterTimePeriods.xls', sheet = 'StartYear'))
-startyr$Delprogram[startyr$Delprogram=='SomPKT'] <- 'totalsommar_pkt'
-startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
-startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
 
+startyr <- getStartYear(poolParams)
+#startyr$Delprogram[startyr$Delprogram=='SomPKT'] <- 'totalsommar_pkt'
+#startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
+#startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
 
  ## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
 onStop(function() {
@@ -84,6 +87,11 @@ ui <- fluidPage(theme = 'flatly',
                 #                          img(style = 'float: left; margin-bottom: 100px;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                 #                          'Åkes superTRIMprogram'))),
                 tabsetPanel(
+                  tabPanel('Parameters',
+
+                      withSpinner(uiOutput("dtTableStartYear"))
+
+                  ),
                   tabPanel('Get data',
                            radioButtons('databasechoice', label = 'Select the database',
                                         choices = list(`Good old sft database on PSQL` = 'psql',
@@ -293,6 +301,7 @@ ui <- fluidPage(theme = 'flatly',
 
 server <- function(input, output, session) {
 
+  
   specart <- reactive({
     switch(input$specsp,
            all = c(1:699),
@@ -412,11 +421,6 @@ server <- function(input, output, session) {
   })
 
 
-  #rtResults <- eventReactive(input$launchDisplayResuts, {
-   # print("youhou")
-
-    #plotOutput('plot')
- # })
 
   summarizeRt <- eventReactive(input$sendquerysumm, {
 
@@ -565,9 +569,7 @@ server <- function(input, output, session) {
 
   output$rtSumm <- renderPrint({
     summarizeRt()[[1]]})
-  
-  output$rtDisplayResults <- renderUI({
-    rtResults()[[1]]})
+
 
   output$dataTable <- DT::renderDataTable({
     DT::datatable(data(), filter='top')
@@ -597,6 +599,76 @@ server <- function(input, output, session) {
   output$plotResultsDisplay <- renderUI({
     plotOutput("plot", width = plotWidth())
   })
+
+
+
+
+  mydata <- startyr
+
+  my.insert.callback <- function(data, row) {
+
+
+    query <- paste0("INSERT INTO species_start_year (species_id, species_sw_name, scheme, year, comment) VALUES ( ",
+      "'", data[row,]$Art, "', ",
+      "'", data[row,]$Arthela, "', ",
+      "'", data[row,]$Delprogram, "', ",
+      data[row,]$StartYear, ", ",
+      "'", data[row,]$Extra, "' ",
+      ")")
+    #print(query) # For debugging
+    dbSendQuery(poolParams, query)
+
+    getid <- paste0("select id FROM species_start_year WHERE ",
+        "species_id = '", data[row,]$Art, "' AND ",
+        "species_sw_name = '", data[row,]$Arthela, "' AND ",
+        "scheme = '", data[row,]$Delprogram, "' AND ",
+        "year = ", data[row,]$StartYear)
+    #print(getid) # For debugging
+    newrow <- dbGetQuery(poolParams, getid)
+    data[row,]$id <- newrow$id
+
+    #mydata <- rbind(data, rowColName)
+    return(data)
+  }
+
+  my.update.callback <- function(data, olddata, row) {
+
+    query <- paste0("UPDATE species_start_year SET ",
+          "species_id = '", data[row,]$Art, "', ",
+          "species_sw_name = '", data[row,]$Arthela, "', ",
+          "scheme = '", data[row,]$Delprogram, "', ",
+          "year = ", data[row,]$StartYear, ", ",
+          "comment = '", data[row,]$Extra, "' ",
+          "WHERE id = ", data[row,]$id)
+    #print(query) # For debugging
+    dbSendQuery(poolParams, query)
+
+    mydata[row,] <- data[row,]
+    return(mydata)
+  }
+
+  my.delete.callback <- function(data, row) {
+
+      query <- paste0("DELETE FROM species_start_year WHERE id = ", data[row,]$id)
+      #print(query) # For debugging
+      dbSendQuery(poolParams, query)
+
+      mydata[row,] <- NULL
+      return(mydata)
+  }
+
+  DTedit::dtedit(input, output,
+                 name = 'dtTableStartYear',
+                 thedata = mydata,
+                 edit.cols = c('Art', 'Arthela', 'Delprogram', 'StartYear', 'Extra'),
+                 edit.label.cols = c('Art', 'Arthela', 'Delprogram', 'StartYear', 'Extra'),
+                 input.types = c(Art='textInput', Arthela='textInput', Delprogram='textInput', StartYear='textInput', Extra='textAreaInput'),
+                 view.cols = c('Art', 'Arthela', 'Delprogram', 'StartYear', 'Extra'),
+                 callback.update = my.update.callback,
+                 callback.insert = my.insert.callback,
+                 callback.delete = my.delete.callback,
+                 show.copy = FALSE,
+                 show.delete = FALSE)
   
 }
 

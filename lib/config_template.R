@@ -11,6 +11,7 @@ library(mongolite)
 
 
 postgres_database <<- "sftdatabase"
+postgres_database_parameters <<- "sftrtrimparams"
 postgres_url <<- ""
 postgres_user <<- "postgres"
 postgres_password <<- "blabla"

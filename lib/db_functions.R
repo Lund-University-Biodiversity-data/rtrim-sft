@@ -1,4 +1,22 @@
 
+getLimitNorthSouth <- function (pool) {
+	query <- 'select species_id as "art", species_id_main as "speciesmain", species_sw_name as "arthela", species_latin_name as "latin", species_en_name as "englishname", latitude_limit as "Latitudgräns"
+              from species_limit_north_south
+              order by art'
+	limitns <<- dbGetQuery(pool, query)
+
+	return(limitns)
+}
+
+getStartYear <- function (pool) {
+	query <- 'select id, species_id as "Art", species_sw_name as "Arthela", scheme as "Delprogram", year as "StartYear", comment as "Extra"
+              from species_start_year
+              order by scheme, species_id '
+	startyr <<- dbGetQuery(pool, query)
+
+	return(startyr)
+}
+
 getSpeciesData  <- function (pool) {
 	querysp <- "select art, arthela, latin, englishname, worldname, rank
               from eurolist

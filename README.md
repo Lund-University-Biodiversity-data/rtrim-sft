@@ -35,3 +35,7 @@ and uncomment/edit these ones, with your configuration
 #library(RPostgres)
 #pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft20201002', user='postgres')
 ```
+
+
+# create database rtrim-params
+sudo -u postgres psql < rtrim-params.sql

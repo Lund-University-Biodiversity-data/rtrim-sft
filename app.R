@@ -88,9 +88,12 @@ ui <- fluidPage(theme = 'flatly',
                 #                          'Åkes superTRIMprogram'))),
                 tabsetPanel(
                   tabPanel('Parameters',
-
-                      withSpinner(uiOutput("dtTableStartYear"))
-
+                    tabsetPanel(
+                      tabPanel('StartYear',
+                        withSpinner(uiOutput("dtTableStartYear"))),
+                      tabPanel('NorthSouth',
+                        withSpinner(uiOutput("dtNorthSouth")))
+                    )
                   ),
                   tabPanel('Get data',
                            radioButtons('databasechoice', label = 'Select the database',
@@ -603,9 +606,8 @@ server <- function(input, output, session) {
 
 
 
-  mydata <- startyr
 
-  my.insert.callback <- function(data, row) {
+  dtTSY.insert.callback <- function(data, row) {
 
 
     query <- paste0("INSERT INTO species_start_year (species_id, species_sw_name, scheme, year, comment) VALUES ( ",
@@ -627,11 +629,11 @@ server <- function(input, output, session) {
     newrow <- dbGetQuery(poolParams, getid)
     data[row,]$id <- newrow$id
 
-    #mydata <- rbind(data, rowColName)
+    #startyr <- rbind(data, rowColName)
     return(data)
   }
 
-  my.update.callback <- function(data, olddata, row) {
+  dtTSY.update.callback <- function(data, olddata, row) {
 
     query <- paste0("UPDATE species_start_year SET ",
           "species_id = '", data[row,]$Art, "', ",
@@ -643,33 +645,101 @@ server <- function(input, output, session) {
     #print(query) # For debugging
     dbSendQuery(poolParams, query)
 
-    mydata[row,] <- data[row,]
-    return(mydata)
+    startyr[row,] <- data[row,]
+    return(startyr)
   }
 
-  my.delete.callback <- function(data, row) {
+  dtTSY.delete.callback <- function(data, row) {
 
       query <- paste0("DELETE FROM species_start_year WHERE id = ", data[row,]$id)
       #print(query) # For debugging
       dbSendQuery(poolParams, query)
 
-      mydata[row,] <- NULL
-      return(mydata)
+      startyr[row,] <- NULL
+      return(startyr)
   }
 
   DTedit::dtedit(input, output,
                  name = 'dtTableStartYear',
-                 thedata = mydata,
+                 thedata = startyr,
                  edit.cols = c('Art', 'Arthela', 'Delprogram', 'StartYear', 'Extra'),
                  edit.label.cols = c('Art', 'Arthela', 'Delprogram', 'StartYear', 'Extra'),
                  input.types = c(Art='textInput', Arthela='textInput', Delprogram='textInput', StartYear='textInput', Extra='textAreaInput'),
                  view.cols = c('Art', 'Arthela', 'Delprogram', 'StartYear', 'Extra'),
-                 callback.update = my.update.callback,
-                 callback.insert = my.insert.callback,
-                 callback.delete = my.delete.callback,
+                 callback.update = dtTSY.update.callback,
+                 callback.insert = dtTSY.insert.callback,
+                 callback.delete = dtTSY.delete.callback,
                  show.copy = FALSE,
                  show.delete = FALSE)
   
+  dtNS.insert.callback <- function(data, row) {
+
+    query <- paste0("INSERT INTO species_limit_north_south (species_id, species_id_main, species_sw_name, species_latin_name, species_en_name, latitude_limit) VALUES ( ",
+      "'", data[row,]$art, "', ",
+      "'", data[row,]$speciesmain, "', ",
+      "'", data[row,]$arthela, "', ",
+      "'", data[row,]$latin, "' ",
+      "'", data[row,]$englishname, "' ",
+      "'", data[row,]$Latitudgräns, "' ",
+      ")")
+    #print(query) # For debugging
+    dbSendQuery(poolParams, query)
+
+    getid <- paste0("select id FROM species_limit_north_south WHERE ",
+        "species_id = '", data[row,]$art, "' AND ",
+        "species_id_main = '", data[row,]$speciesmain, "' ")
+    #print(getid) # For debugging
+    newrow <- dbGetQuery(poolParams, getid)
+    data[row,]$id <- newrow$id
+
+
+
+    #rangedat <- rbind(data, rowColName)
+    return(data)
+  }
+
+  dtNS.update.callback <- function(data, olddata, row) {
+
+    query <- paste0("UPDATE species_limit_north_south SET ",
+          "species_id = '", data[row,]$art, "', ",
+          "species_id_main = '", data[row,]$speciesmain, "', ",
+          "species_sw_name = '", data[row,]$arthela, "', ",
+          "species_latin_name = '", data[row,]$latin, "', ",
+          "species_en_name = '", data[row,]$englishname, "', ",
+          "latitude_limit = '", data[row,]$Latitudgräns, "' ",
+          "WHERE id = ", data[row,]$id)
+    print(query) # For debugging
+    dbSendQuery(poolParams, query)
+
+    rangedat[row,] <- data[row,]
+
+    rangedat$Latlimit <- as.numeric(gsub('[[:alpha:]]|[[:punct:]]|[[:blank:]]', '', rangedat$Latitudgräns))
+    rangedat$smaller <- grepl('S', rangedat$Latitudgräns)
+
+    return(rangedat)
+
+  }
+
+  dtNS.delete.callback <- function(data, row) {
+    rangedat[row,] <- NULL
+    return(rangedat)
+  }
+
+  #mydata2 <- rangedat
+
+  DTedit::dtedit(input, output,
+                 name = 'dtNorthSouth',
+                 thedata = rangedat,
+                 edit.cols = c('art', 'speciesmain', 'arthela', 'latin', 'englishname', 'Latitudgräns'),
+                 edit.label.cols = c('art', 'speciesmain', 'arthela', 'latin', 'englishname', 'Latitudgräns'),
+                 view.cols = c('art', 'speciesmain', 'arthela', 'latin', 'englishname', 'Latitudgräns'),
+                 callback.update = dtNS.update.callback,
+                 callback.insert = dtNS.insert.callback,
+                 callback.delete = dtNS.delete.callback,
+                 show.copy = FALSE,
+                 show.delete = FALSE)
+
+
 }
 
 shinyApp(ui = ui, server = server)

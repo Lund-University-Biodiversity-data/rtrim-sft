@@ -4,6 +4,17 @@ CREATE DATABASE "rtrim-params";
 
 CREATE TYPE sftschemes AS ENUM ('totalsommar_pkt', 'totalstandard', 'totalvinter_pkt');
 
+CREATE TABLE species_from_ala (
+	id serial PRIMARY KEY,
+	species_id char(3) NOT NULL,
+	species_latin_name varchar(75),
+	species_sw_name varchar(75),
+	species_en_name varchar(75),
+	species_worldname varchar(75),
+	species_rank integer NOT NULL,
+	species_guid integer NOT NULL
+);
+
 CREATE TABLE species_start_year (
 	id serial PRIMARY KEY,
 	species_id char(3) NOT NULL,

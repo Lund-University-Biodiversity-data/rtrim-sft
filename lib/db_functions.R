@@ -1,4 +1,110 @@
 
+getListsFromAla <- function (poolParams) {
+
+	print("delete species_from_ala")
+	delete <- paste0("DELETE FROM species_from_ala;")
+	resD <- dbSendQuery(poolParams, delete)
+	dbClearResult(resD)
+
+	print(paste("URL to scan:",paste0(species_list_url, bird_list_id)))
+
+	data_json_species = fromJSON(file=paste0(species_list_url, bird_list_id))
+	print(paste("Elements found :",length(data_json_species)))
+	nbElt <-length(data_json_species)
+	iS <-1
+
+	vArt <- vector()
+	vName <- vector()
+	vArthela <- vector()
+	vEnglishname <- vector()
+	vWorldname <- vector()
+	vRank <- vector()
+	vGuid <- vector()
+
+	iS2 <- 0
+
+	while(iS < nbElt){
+
+	  species<-data.frame()
+	  #print(data_json_species[[iS]]$lsid)
+	  if (!is.null(data_json_species[[iS]]$lsid)) {
+
+	    #print(paste0(iS, "url : ",species_list_details_url, data_json_species[[iS]]$lsid))
+
+	    data_json_species_details = fromJSON(file=paste0(species_list_details_url, data_json_species[[iS]]$lsid))
+
+	    nbKeys <- length(data_json_species_details[[1]]$kvpValues)
+
+	    iKey <- 1
+	    continue <- TRUE
+	    art <- ""
+	    arthela <- ""
+	    englishname <- ""
+	    worldname <- ""
+	    rank <- NULL
+
+	    while(continue && iKey <= nbKeys){
+
+	      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "art") {
+	        art <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+	      }
+
+	      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "arthela") {
+	        arthela <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+	      }
+
+	      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "englishname") {
+	        englishname <-data_json_species_details[[1]]$kvpValues[[iKey]]$value
+	      }
+
+	      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "worldname") {
+	        worldname <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+	      }
+
+	      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "rank") {
+	        rank <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+	      }
+
+	      iKey <- iKey+1
+	    }
+
+	    iS2 <- iS2 + 1
+	    vArt[iS2] <- str_pad(art, 3, side="left", pad="0")
+	    vName[iS2] <- data_json_species[[iS]]$name
+	    vArthela[iS2] <- arthela
+	    vEnglishname[iS2] <- englishname
+	    vWorldname[iS2] <- worldname
+	    vRank[iS2] <- rank
+	    vGuid[iS2] <- data_json_species[[iS]]$lsid
+	    #print(paste("art :", art))
+
+#('art', 'latin', 'arthela', 'englishname', 'worldname', 'rank', 'guid')
+	  	insert <- paste0("INSERT INTO species_from_ala (species_id, species_sw_name, species_latin_name, species_en_name, species_worldname, species_rank, species_guid)",
+	  			"VALUES (",
+	  			"'", str_pad(art, 3, side="left", pad="0"), "', ",
+  				"'", arthela, "',  ",
+  				"'", data_json_species[[iS]]$name, "',  ",
+  				"'", str_replace(englishname, "'", "''"), "',  ",
+  				"'", str_replace(worldname, "'", "''"), "',  ",
+  				"", rank, ",  ",
+  				"", data_json_species[[iS]]$lsid, "  ",
+	  			")")
+	  	resQ <- dbSendQuery(poolParams, insert)
+	  	dbClearResult(resQ)
+	  }
+	  iS <- iS + 1
+	}
+
+	print(paste("Elements added to table :", length(vArt)))
+	dfspecies <- data.frame(vArt, vArthela, vName, vEnglishname, vWorldname, vRank, vGuid)
+	colnames(dfspecies) <- c("art", "arthela", "latin", "englishname", "worldname", "rank", "guid")
+	#print(dfspecies)
+	print(paste("Success!"))
+	print(("Please reload the app to use the new species list!"))
+
+	return(dfspecies)
+}
+
 getLimitNorthSouth <- function (pool) {
 	query <- 'select id, species_id as "art", species_id_main as "speciesmain", species_sw_name as "arthela", species_latin_name as "latin", species_en_name as "englishname", latitude_limit as "Latitudgräns"
               from species_limit_north_south
@@ -20,6 +126,16 @@ getStartYear <- function (pool) {
 getSpeciesData  <- function (pool) {
 	querysp <- "select art, arthela, latin, englishname, worldname, rank
               from eurolist
+              order by art"
+	spdat <<- dbGetQuery(pool, querysp)
+
+	return(spdat)	
+}
+
+getSpeciesDataParams<- function (pool) {
+
+	querysp <- "select species_id as art, species_sw_name as arthela, species_latin_name as latin, species_en_name as englishname, species_worldname as worldname, species_rank as rank, species_guid as guid
+              from species_from_ala
               order by art"
 	spdat <<- dbGetQuery(pool, querysp)
 
@@ -77,24 +193,24 @@ getSitesMongo <- function () {
 	# db.site.find({karta:{$exists:1}, projects:"89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"}, {karta:1, "extent.geometry.decimalLongitude":1}).
 }
 
-getMatchSpecies <- function (pool) {
+getMatchSpecies <- function (poolParams) {
 
-	querysp <- "select art, latin
-          from eurolist
+	querysp <- "select species_id as art, species_latin_name as latin
+          from species_from_ala
           order by art"
-	species <- dbGetQuery(pool, querysp)
+	species <- dbGetQuery(poolParams, querysp)
 
 	nbSp <- nrow(species)
 	iSp <- 1
-	sitesMatch <- array()
+	spMatch <- array()
 
 	while (iSp<=nbSp) {
-		sitesMatch[[species$latin[iSp]]] <- species$art[iSp]
+		spMatch[[species$latin[iSp]]] <- species$art[iSp]
 		iSp <- iSp+1
 	}
 
 
-	return(sitesMatch)
+	return(spMatch)
 }
 
 getListBirdsUrl <- function (listId) {

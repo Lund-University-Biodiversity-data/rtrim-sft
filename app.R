@@ -4,21 +4,20 @@ source('lib/db_functions.R')
 source('lib/UsefulFunctions.R')
 source('lib/SummariseFunctions.R')
 
-
-library(DTedit)
-
-
 # for connection from windows computer, ran locally
 #pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
 
 pool<-dbConnect(RPostgres::Postgres(), dbname = postgres_database, user=postgres_user)
 poolParams<-dbConnect(RPostgres::Postgres(), dbname = postgres_database_parameters, user=postgres_user)
 
-spdat <- getSpeciesData(pool)
+#spdat2 <- getListsFromAla(poolParams)
+#spdat <- getSpeciesData(pool)
+spdat <- getSpeciesDataParams(poolParams)
 #spdat <<- getSpeciesDataMongo()
 
+
 # get matching species
-speciesMatch <- getMatchSpecies(pool)
+speciesMatch <- getMatchSpecies(poolParams)
 speciesMatchScientificNames <- getListBirdsUrl(bird_list_id)
 #speciesMatchScientificNames <- getListSpeciesBirdsScientificName(pool)
 
@@ -86,16 +85,23 @@ ui <- fluidPage(theme = 'flatly',
                 # titlePanel(title = div(style = 'margin: auto; padding-bottom: 50px', p(style = 'display: block; text-align: center; font-size: 1.5em;',
                 #                          img(style = 'float: left; margin-bottom: 100px;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                 #                          'Åkes superTRIMprogram'))),
-                tabsetPanel(
-                  tabPanel('Parameters',
+                tabsetPanel(selected="Get data",
+                  tabPanel('Parameters', 
                     tabsetPanel(
+                      tabPanel('SpeciesList',
+                        hr(),
+                        fluidRow( div(paste0("The species list here is obtained from the API requested at the url ", species_list_api_url) )),
+                        hr(),
+                        actionButton("regenerateSpecies", "Request the API"),
+                        hr(),
+                        withSpinner(verbatimTextOutput('resultGenerateSpecies'))),
                       tabPanel('StartYear',
                         withSpinner(uiOutput("dtTableStartYear"))),
                       tabPanel('NorthSouth',
                         withSpinner(uiOutput("dtNorthSouth")))
                     )
                   ),
-                  tabPanel('Get data',
+                  tabPanel('Get data', 
                            radioButtons('databasechoice', label = 'Select the database',
                                         choices = list(`Good old sft database on PSQL` = 'psql',
                                                        `Brand new mongoDB` = 'mongodb'),
@@ -447,6 +453,19 @@ server <- function(input, output, session) {
 
   })
 
+  getspecies <- eventReactive(input$regenerateSpecies, {
+
+    spdat <<- getListsFromAla(poolParams)
+
+    #print(spdat)
+  })
+
+
+  output$resultGenerateSpecies <- renderPrint({
+    getspecies()})
+
+
+
   output$yrSlider <- renderUI({
     queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
               from %s", input$tabsel)
@@ -469,14 +488,20 @@ server <- function(input, output, session) {
   })
     
   output$specCheckbox <- renderUI({
-    queryspec <- sprintf("select distinct art
-                          from %s
-                          where art>'000'
-                          order by art", input$tabsel)
-    specs <- dbGetQuery(pool, queryspec)
+    #queryspec <- sprintf("select distinct art
+    #                      from %s
+    #                      where art>'000'
+    #                      order by art", input$tabsel)
+    #specs <- dbGetQuery(pool, queryspec)
+    queryspec <- sprintf("select distinct species_id as art
+                          from species_from_ala
+                          where species_id>'000'
+                          order by species_id", input$tabsel)
+    specs <- dbGetQuery(poolParams, queryspec)
     specnames <- spdat$arthela[match(specs$art,spdat$art)]
     speclist <- as.list(specs$art)
     names(speclist) <- specnames
+
     tags$div(tags$div(strong(p("Select species"))),
              tags$div(align = 'left',
                       class = 'multicol6',

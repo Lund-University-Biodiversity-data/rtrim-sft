@@ -8,7 +8,9 @@ getListsFromAla <- function (poolParams) {
 
 	print(paste("URL to scan:",paste0(species_list_url, bird_list_id)))
 
-	data_json_species = fromJSON(file=paste0(species_list_url, bird_list_id))
+	dataurl <- getURL(paste0(species_list_url, bird_list_id))
+	data_json_species = fromJSON(dataurl)
+	#data_json_species = fromJSON(file=paste0(species_list_url, bird_list_id))
 	print(paste("Elements found :",length(data_json_species)))
 	nbElt <-length(data_json_species)
 	iS <-1

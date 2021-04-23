@@ -195,11 +195,15 @@ getSitesMongo <- function () {
 	# db.site.find({karta:{$exists:1}, projects:"89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"}, {karta:1, "extent.geometry.decimalLongitude":1}).
 }
 
-getMatchSpecies <- function (poolParams) {
+getMatchSpecies <- function (poolParams, speciesSel) {
 
-	querysp <- "select species_id as art, species_latin_name as latin
+	specsel <- paste0('(', paste(speciesSel, collapse = ','), ')')
+
+	querysp <- sprintf("select species_id as art, species_latin_name as latin
           from species_from_ala
-          order by art"
+          where to_number(species_id, '000') in %s
+          order by art", specsel)
+	
 	species <- dbGetQuery(poolParams, querysp)
 
 	nbSp <- nrow(species)
@@ -215,7 +219,24 @@ getMatchSpecies <- function (poolParams) {
 	return(spMatch)
 }
 
-getListBirdsUrl <- function (listId) {
+getMatchSpeciesSN <- function (poolParams, speciesSel) {
+
+	specsel <- paste0('(', paste(speciesSel, collapse = ','), ')')
+
+	querysp <- sprintf("select species_latin_name as sn, species_latin_name as latin
+          from species_from_ala
+          where to_number(species_id, '000') in %s
+          order by sn", specsel)
+	
+	species <- dbGetQuery(poolParams, querysp)
+
+	speciesFinal <- paste('"', species$sn, '"', sep = "", collapse = ',')
+
+	return(speciesFinal)
+}
+
+
+getListBirdsUrl <- function (listId, speciesSel) {
 
 
 	url <- paste("https://lists.bioatlas.se/ws/speciesListItems/", listId, sep="")

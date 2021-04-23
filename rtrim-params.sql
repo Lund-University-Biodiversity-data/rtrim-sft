@@ -6,7 +6,7 @@ CREATE TYPE sftschemes AS ENUM ('totalsommar_pkt', 'totalstandard', 'totalvinter
 
 CREATE TABLE species_from_ala (
 	id serial PRIMARY KEY,
-	species_id char(3) NOT NULL,
+	species_id varchar(3) NOT NULL,
 	species_latin_name varchar(75),
 	species_sw_name varchar(75),
 	species_en_name varchar(75),

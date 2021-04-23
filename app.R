@@ -16,11 +16,6 @@ spdat <- getSpeciesDataParams(poolParams)
 #spdat <<- getSpeciesDataMongo()
 
 
-# get matching species
-speciesMatch <- getMatchSpecies(poolParams)
-speciesMatchScientificNames <- getListBirdsUrl(bird_list_id)
-#speciesMatchScientificNames <- getListSpeciesBirdsScientificName(pool)
-
 
 rangedat <- getLimitNorthSouth(poolParams)
 rangedat$Latlimit <- as.numeric(gsub('[[:alpha:]]|[[:punct:]]|[[:blank:]]', '', rangedat$Latitudgräns))
@@ -373,7 +368,12 @@ server <- function(input, output, session) {
       regStdat <<- getBiotopSitesMongo()
 
       print(Sys.time())
-      dataMerge <<- getTotalStandardData (speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, years = input$selyrs)
+      # get matching species
+      speciesMatch <- getMatchSpecies(poolParams, specart())
+      #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
+      speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, specart())
+
+      dataMerge <<- getTotalStandardData (speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs)
 
       #output$downloadData <- downloadHandler(
       #  content = function(file) {
@@ -389,7 +389,8 @@ server <- function(input, output, session) {
       rcdat <<- getSites(pool)
 
       regStdat <<- getBiotopSites(pool)
-
+print("speciesSel")
+print(specart())
       DoQuery(pool = pool, tab = input$tabsel, spec=specart(),
             specper = input$specper, selyrs = input$selyrs, line = input$linepoint,
             savedat = input$savedat, filename = input$filenameDat)

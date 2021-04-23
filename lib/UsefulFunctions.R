@@ -288,7 +288,13 @@ DoQuery <- function (pool=NULL, tab=NULL, spec=NULL, specper=NULL, selyrs=NULL,
   ## Bygga ihop subqueries till den query som ska skickas till SFT  ##
   ## Tabellerna "-1", "0", "counts" läggs ihop (efter varandra) och ##
   ## sedan tas max över count-kolumnen                              ##
-  
+
+#print("tabMinus1")
+#print(subqueries$tabminus1)
+#print("tabzero")
+#print(subqueries$tabzero)
+#print("tabcount")
+#print(subqueries$tabcount)
   query <- sprintf("select site, species, time, max(count) as count
                  from
                  (%s

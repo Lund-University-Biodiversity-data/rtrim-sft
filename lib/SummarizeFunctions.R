@@ -9,7 +9,7 @@ library(writexl)
 
 
 
-DoSummariseResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NULL, startyr=NULL, homepage=NULL, single=NULL, combinations = NULL, lang=NULL) {
+DoSummarizeResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NULL, startyr=NULL, homepage=NULL, single=NULL, combinations = NULL, lang=NULL) {
 
   shortcolumn <- c('T')
   shorttab <- c('T')

@@ -2,7 +2,7 @@ source('lib/config.R')
 
 source('lib/db_functions.R')
 source('lib/UsefulFunctions.R')
-source('lib/SummariseFunctions.R')
+source('lib/SummarizeFunctions.R')
 
 # for connection from windows computer, ran locally
 #pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
@@ -260,7 +260,7 @@ ui <- fluidPage(theme = 'flatly',
                            withSpinner(uiOutput("plotResultsDisplay")),
                            hr()
                   ),
-                  tabPanel('Summarise results',
+                  tabPanel('Summarize results',
                            hr(),
                            p('The generated files can be found => .'),
                            tags$a("Download files folder", href=url_extract),
@@ -449,7 +449,7 @@ print(specart())
       startyr <- NULL
     }
 
-    DoSummariseResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, single=input$singleSumm, lang=input$langSumm) 
+    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, single=input$singleSumm, lang=input$langSumm) 
 
 
   })

@@ -113,9 +113,7 @@ ui <- fluidPage(theme = 'flatly',
                                         selected = 'totalstandard', inline = FALSE, width = NULL),
                            conditionalPanel(condition = 'input.tabsel == "totalstandard"',
                                             radioButtons('linepoint', label = 'Select subscheme',
-                                                         choices = list(Lines = TRUE
-                                                                        #, Points = FALSE
-                                                                        ),
+                                                         choices = list(Lines = TRUE, Points = FALSE ),
                                                          selected = TRUE, inline = TRUE)
                                             ),
                            conditionalPanel(condition = 'input.tabsel == "totalvinter_pkt"',
@@ -373,7 +371,13 @@ server <- function(input, output, session) {
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
       speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, specart())
 
-      dataMerge <<- getTotalStandardData (speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs)
+      if (input$linepoint) {
+        linepoint <- "line"
+      }
+      else {
+        linepoint <- "point" 
+      }
+      dataMerge <<- getTotalStandardData (speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint)
 
       #output$downloadData <- downloadHandler(
       #  content = function(file) {
@@ -389,8 +393,7 @@ server <- function(input, output, session) {
       rcdat <<- getSites(pool)
 
       regStdat <<- getBiotopSites(pool)
-print("speciesSel")
-print(specart())
+
       DoQuery(pool = pool, tab = input$tabsel, spec=specart(),
             specper = input$specper, selyrs = input$selyrs, line = input$linepoint,
             savedat = input$savedat, filename = input$filenameDat)

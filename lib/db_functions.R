@@ -344,7 +344,7 @@ getIWCData <- function (pool) {
 }
 
 
-getTabMinus1Mongo <- function (species, speciesSN, sites, years) {
+getTabMinus1Mongo <- function (species, speciesSN, sites, years, linepoint) {
 
 	print(paste("start getTabMinus1Mongo ", Sys.time()))
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
@@ -376,11 +376,11 @@ getTabMinus1Mongo <- function (species, speciesSN, sites, years) {
 	    {"$unwind": "$obs"},
 	    {"$project": {
 	        "site": 1,
-	        "linecount": "$obs.lineCount",
+	        %s: %s,
 	        "ssn": "$obs.species.scientificName"
 	    }},
 	    {"$match": {
-	        "linecount" : {"$gt":0},
+	        %s : {"$gt":0},
 	        "ssn" : {"$in" : [%s]}
 	    }},
 	    {"$group": {
@@ -388,7 +388,7 @@ getTabMinus1Mongo <- function (species, speciesSN, sites, years) {
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', speciesSN),
+	]', paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -427,7 +427,7 @@ getTabMinus1Mongo <- function (species, speciesSN, sites, years) {
 
 
 
-getTabZeroMongo <- function (species, speciesSN, sites, years) {
+getTabZeroMongo <- function (species, speciesSN, sites, years, linepoint) {
 
 	print(paste("start getTabZeroMongo ", Sys.time()))
 
@@ -504,11 +504,11 @@ getTabZeroMongo <- function (species, speciesSN, sites, years) {
 	    {"$unwind": "$obs"},
 	    {"$project": {
 	        "site": 1,
-	        "linecount": "$obs.lineCount",
+	        %s: %s,
 	        "ssn": "$obs.species.scientificName"
 	    }},
 	    {"$match": {
-	        "linecount" : {"$gt":0},
+	        %s : {"$gt":0},
 	        "ssn" : {"$in" : [%s]}
 	    }},
 	    {"$group": {
@@ -516,7 +516,7 @@ getTabZeroMongo <- function (species, speciesSN, sites, years) {
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', speciesSN),
+	]', paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -569,7 +569,7 @@ createOrEventDateCriteria <- function (years) {
     return(or)
 }
 
-getTabStandardCountMongo <- function (species, speciesSN, sites, years) {
+getTabStandardCountMongo <- function (species, speciesSN, sites, years, linepoint) {
 
 	print(paste("start getTabStandardCountMongo ", Sys.time()))
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
@@ -606,15 +606,15 @@ getTabStandardCountMongo <- function (species, speciesSN, sites, years) {
 	    {"$unwind": "$obs"},
 	    {"$project": {
 	        "site": 1,
-	        "linecount": "$obs.lineCount",
+	        %s: %s,
 	        "ssn": "$obs.species.scientificName",
 	        "surveydate": 1
 	    }},
 	    {"$match": {
-	        "linecount" : {"$gt":0},
+	        %s : {"$gt":0},
 	        "ssn" : {"$in" : [%s]}
 	    }}
-	]', or, speciesSN),
+	]', or, paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -639,7 +639,12 @@ getTabStandardCountMongo <- function (species, speciesSN, sites, years) {
 		#vArt[nbElt] <- obs$species$scientificName
 		vArtMatch[nbElt] <- species[[toString(output$ssn)]]
 		vYear[nbElt] <- substr(output$surveydate, 1 , 4)
-		vCount[nbElt] <- output$linecount
+		if (linepoint == "point") {
+			vCount[nbElt] <- output$pointcount
+		}
+		else {
+			vCount[nbElt] <- output$linecount
+		}
 
 
 	}
@@ -674,11 +679,11 @@ mergeTabs <- function (minus1, zeros, stdcount) {
 	return(final)
 }
 
-getTotalStandardData <- function (speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel) {
+getTotalStandardData <- function (speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint) {
 
-	minus1 <- getTabMinus1Mongo(species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel)
-	zeros <- getTabZeroMongo(species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel)
-	stdcount <- getTabStandardCountMongo(species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel)
+	minus1 <- getTabMinus1Mongo(species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
+	zeros <- getTabZeroMongo(species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
+	stdcount <- getTabStandardCountMongo(species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
 
 	print(paste("before final merge :", Sys.time()))
 

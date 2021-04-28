@@ -29,3 +29,8 @@ bird_list_id <<- "dr158"
 path_project <<- "/home/blabla/rtrim-interface-development"
 path_project_extract <<- "/home/blabla/rtrim-interface-development/extract"
 url_extract <<- "http://canmoveapp.ekol.lu.se/rtrim-sft-extract/"
+
+project_id_std <<- "dsfsfsadfsa"
+project_id_summer <<- "dsfsfsadfsa"
+project_id_winter <<- "dsfsfsadfsa"
+project_id_iwc <<- "dsfsfsadfsa"

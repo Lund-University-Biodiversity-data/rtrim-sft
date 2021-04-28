@@ -1,4 +1,57 @@
 
+getUniquesSpeciesFromScheme <- function (projectId, speciesList) {
+
+	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
+
+	res <- mongoConnection$aggregate(sprintf('[
+		{"$match": {
+	        "status" : "active"
+	    }},
+	    {"$lookup": {
+          "from": "activity",
+          "localField": "activityId",
+          "foreignField": "activityId",
+          "as": "actID"
+        }},
+        {"$unwind": "$activityId"},
+	    {"$match": {
+	        "actID.projectId" : %s,
+	        "actID.verificationStatus" : "approved"
+	    }},
+	    {"$project": {
+	        "data.observations":1
+	    }},
+	    {"$unwind": "$data"},
+	    {"$project": {
+	        "obs": "$data.observations"
+	    }},
+	    {"$unwind": "$obs"},
+	    {"$project": {
+	        "ssn": "$obs.species.scientificName"
+	    }},
+	    {"$group": {
+	    	"_id": null, 
+	    	"speciesUnique": {"$addToSet": "$ssn"}
+	    }},
+	    {"$sort" : {
+		    "speciesUnique" : 1
+		}}
+	    ]', paste0('"', projectId, '"')),
+		options = '{"allowDiskUse":true}',
+		iterate = TRUE
+	)
+
+	nbElt <- 0
+
+	while(!is.null(output <- res$one())){
+		r <- unlist(strsplit(toString(output$speciesUnique), ","))
+		vSn <- data.frame(name=r[c(TRUE)])
+	}
+
+	return(vSn)
+}
+
+
 getListsFromAla <- function (poolParams) {
 
 	print("delete species_from_ala")
@@ -6,14 +59,6 @@ getListsFromAla <- function (poolParams) {
 	resD <- dbSendQuery(poolParams, delete)
 	dbClearResult(resD)
 
-	print(paste("URL to scan:",paste0(species_list_url, bird_list_id)))
-
-	dataurl <- getURL(paste0(species_list_url, bird_list_id))
-	data_json_species = fromJSON(dataurl)
-	#data_json_species = fromJSON(file=paste0(species_list_url, bird_list_id))
-	print(paste("Elements found :",length(data_json_species)))
-	nbElt <-length(data_json_species)
-	iS <-1
 
 	vArt <- vector()
 	vName <- vector()
@@ -25,77 +70,109 @@ getListsFromAla <- function (poolParams) {
 
 	iS2 <- 0
 
-	while(iS < nbElt){
+	for (iList in 1:3) {
 
-	  species<-data.frame()
-	  #print(data_json_species[[iS]]$lsid)
-	  if (!is.null(data_json_species[[iS]]$lsid)) {
+		if (iList==1) {
+			animal_list <- list_id_mammal
+			print("MAMMALS LIST")
+		}
+		else if (iList==2) {
+			animal_list <- list_id_bird
+			print("BIRDS LIST")
+		}
+		else if (iList==3) {
+			animal_list <- list_id_amphibian
+			print("AMPHIBIANS LIST")
+		}
+		# owls already included in birds
+		#else if (iList==4) {
+		#	animal_list <- list_id_owl
+		#	print("OWLS LIST")
+		#}
 
-	    #print(paste0(iS, "url : ",species_list_details_url, data_json_species[[iS]]$lsid))
+		print(paste("URL to scan:",paste0(species_list_url, animal_list)))
 
-	    data_json_species_details = fromJSON(file=paste0(species_list_details_url, data_json_species[[iS]]$lsid))
+		dataurl <- getURL(paste0(species_list_url, animal_list))
+		data_json_species = fromJSON(dataurl)
+		#data_json_species = fromJSON(file=paste0(species_list_url, bird_list_id))
+		print(paste("Elements found :",length(data_json_species)))
+		nbElt <-length(data_json_species)
+		iS <-1
 
-	    nbKeys <- length(data_json_species_details[[1]]$kvpValues)
+		while(iS <= nbElt){
 
-	    iKey <- 1
-	    continue <- TRUE
-	    art <- ""
-	    arthela <- ""
-	    englishname <- ""
-	    worldname <- ""
-	    rank <- NULL
+		  species<-data.frame()
+		  #print(data_json_species[[iS]]$lsid)
+		  if (!is.null(data_json_species[[iS]]$lsid)) {
 
-	    while(continue && iKey <= nbKeys){
+		    #print(paste0(iS, "url : ",species_list_details_url, data_json_species[[iS]]$lsid))
 
-	      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "art") {
-	        art <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
-	      }
+		    data_json_species_details = fromJSON(file=paste0(species_list_details_url, data_json_species[[iS]]$lsid))
 
-	      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "arthela") {
-	        arthela <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
-	      }
+		    nbKeys <- length(data_json_species_details[[1]]$kvpValues)
 
-	      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "englishname") {
-	        englishname <-data_json_species_details[[1]]$kvpValues[[iKey]]$value
-	      }
+		    iKey <- 1
+		    continue <- TRUE
+		    art <- ""
+		    arthela <- ""
+		    englishname <- ""
+		    worldname <- ""
+		    rank <- NULL
 
-	      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "worldname") {
-	        worldname <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
-	      }
+		    while(continue && iKey <= nbKeys){
 
-	      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "rank") {
-	        rank <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
-	      }
+		      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "art") {
+		        art <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+		      }
 
-	      iKey <- iKey+1
-	    }
+		      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "arthela") {
+		        arthela <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+		      }
 
-	    iS2 <- iS2 + 1
-	    vArt[iS2] <- str_pad(art, 3, side="left", pad="0")
-	    vName[iS2] <- data_json_species[[iS]]$name
-	    vArthela[iS2] <- arthela
-	    vEnglishname[iS2] <- englishname
-	    vWorldname[iS2] <- worldname
-	    vRank[iS2] <- rank
-	    vGuid[iS2] <- data_json_species[[iS]]$lsid
-	    #print(paste("art :", art))
+		      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "englishname") {
+		        englishname <-data_json_species_details[[1]]$kvpValues[[iKey]]$value
+		      }
 
-#('art', 'latin', 'arthela', 'englishname', 'worldname', 'rank', 'guid')
-	  	insert <- paste0("INSERT INTO species_from_ala (species_id, species_sw_name, species_latin_name, species_en_name, species_worldname, species_rank, species_guid)",
-	  			"VALUES (",
-	  			"'", str_pad(art, 3, side="left", pad="0"), "', ",
-  				"'", arthela, "',  ",
-  				"'", data_json_species[[iS]]$name, "',  ",
-  				"'", str_replace(englishname, "'", "''"), "',  ",
-  				"'", str_replace(worldname, "'", "''"), "',  ",
-  				"", rank, ",  ",
-  				"", data_json_species[[iS]]$lsid, "  ",
-	  			")")
-	  	resQ <- dbSendQuery(poolParams, insert)
-	  	dbClearResult(resQ)
-	  }
-	  iS <- iS + 1
+		      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "worldname") {
+		        worldname <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+		      }
+
+		      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "rank") {
+		        rank <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+		      }
+
+		      iKey <- iKey+1
+		    }
+
+		    iS2 <- iS2 + 1
+		    vArt[iS2] <- str_pad(art, 3, side="left", pad="0")
+		    vName[iS2] <- data_json_species[[iS]]$name
+		    vArthela[iS2] <- arthela
+		    vEnglishname[iS2] <- englishname
+		    vWorldname[iS2] <- worldname
+		    vRank[iS2] <- rank
+		    vGuid[iS2] <- data_json_species[[iS]]$lsid
+		    #print(paste("art :", art))
+
+	#('art', 'latin', 'arthela', 'englishname', 'worldname', 'rank', 'guid')
+		  	insert <- paste0("INSERT INTO species_from_ala (species_id, species_sw_name, species_latin_name, species_en_name, species_worldname, species_rank, species_guid)",
+		  			"VALUES (",
+		  			"'", str_pad(art, 3, side="left", pad="0"), "', ",
+	  				"'", arthela, "',  ",
+	  				"'", data_json_species[[iS]]$name, "',  ",
+	  				"'", str_replace(englishname, "'", "''"), "',  ",
+	  				"'", str_replace(worldname, "'", "''"), "',  ",
+	  				"", rank, ",  ",
+	  				"", data_json_species[[iS]]$lsid, "  ",
+		  			")")
+		  	resQ <- dbSendQuery(poolParams, insert)
+		  	dbClearResult(resQ)
+		  }
+		  iS <- iS + 1
+		}
+
 	}
+
 
 	print(paste("Elements added to table :", length(vArt)))
 	dfspecies <- data.frame(vArt, vArthela, vName, vEnglishname, vWorldname, vRank, vGuid)
@@ -163,14 +240,14 @@ getSites <- function(pool) {
 
 }
 
-getSitesMongo <- function () {
+getSitesMongo <- function (projectId) {
 
 	# MISSING ALL THE PK SITES
 
 	mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	res <- mongoConnection$iterate(
-	  query = '{"karta":{"$exists":1}, "projects":"89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"}', 
+	  query = sprintf('{"karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
 	  fields = '{"karta":1, "extent.geometry.decimalLatitude":1}'
 	)
 
@@ -195,14 +272,21 @@ getSitesMongo <- function () {
 	# db.site.find({karta:{$exists:1}, projects:"89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"}, {karta:1, "extent.geometry.decimalLongitude":1}).
 }
 
-getMatchSpecies <- function (poolParams, speciesSel) {
+getMatchSpecies <- function (poolParams, speciesSel = "all") {
 
 	specsel <- paste0('(', paste(speciesSel, collapse = ','), ')')
 
-	querysp <- sprintf("select species_id as art, species_latin_name as latin
-          from species_from_ala
-          where to_number(species_id, '000') in %s
-          order by art", specsel)
+	if (speciesSel == "all") {
+		querysp <- sprintf("select species_id as art, species_latin_name as latin
+	          from species_from_ala
+	          order by art")
+	}
+	else {
+		querysp <- sprintf("select species_id as art, species_latin_name as latin
+	          from species_from_ala
+	          where to_number(species_id, '000') in %s
+	          order by art", specsel)
+	}
 	
 	species <- dbGetQuery(poolParams, querysp)
 
@@ -252,12 +336,12 @@ getListBirdsUrl <- function (listId, speciesSel) {
 }
 
 
-getMatchSitesMongo <- function () {
+getMatchSitesMongo <- function (projectId) {
 
 	mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	res <- mongoConnection$iterate(
-	  query = '{"karta":{"$exists":1}, "projects":"89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"}', 
+	  query = sprintf('{"karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
 	  fields = '{"karta":1, "siteId":1}'
 	)
 
@@ -287,14 +371,14 @@ getBiotopSites <- function(pool) {
 
 
 
-getBiotopSitesMongo <- function () {
+getBiotopSitesMongo <- function (projectId) {
 
 	# MISSING ALL THE PK SITES
 
 	mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	res <- mongoConnection$iterate(
-	  query = '{"karta":{"$exists":1}, "projects":"89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"}', 
+	  query = sprintf('{"karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
 	  fields = '{"karta":1, "commonName":1, "name":1, "LAN":1, "LSK":1, "Fjall104":1, "Fjall142":1}'
 	)
 
@@ -344,7 +428,7 @@ getIWCData <- function (pool) {
 }
 
 
-getTabMinus1Mongo <- function (species, speciesSN, sites, years, linepoint) {
+getTabMinus1Mongo <- function (projectId, species, speciesSN, sites, years, linepoint) {
 
 	print(paste("start getTabMinus1Mongo ", Sys.time()))
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
@@ -361,7 +445,7 @@ getTabMinus1Mongo <- function (species, speciesSN, sites, years, linepoint) {
         }},
         {"$unwind": "$activityId"},
 	    {"$match": {
-	        "actID.projectId" : "89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c",
+	        "actID.projectId" : %s,
 	        "actID.verificationStatus" : "approved"
 	    }},
 	    {"$project": {
@@ -388,7 +472,7 @@ getTabMinus1Mongo <- function (species, speciesSN, sites, years, linepoint) {
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
+	]', paste0('"', projectId, '"'), paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -427,7 +511,7 @@ getTabMinus1Mongo <- function (species, speciesSN, sites, years, linepoint) {
 
 
 
-getTabZeroMongo <- function (species, speciesSN, sites, years, linepoint) {
+getTabZeroMongo <- function (projectId, species, speciesSN, sites, years, linepoint) {
 
 	print(paste("start getTabZeroMongo ", Sys.time()))
 
@@ -447,14 +531,14 @@ getTabZeroMongo <- function (species, speciesSN, sites, years, linepoint) {
           "as": "actID"
         }},
 	    {"$match": {
-	        "actID.projectId" : "89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c",
+	        "actID.projectId" : %s,
 	        "actID.verificationStatus" : "approved"
 	    }},
 	    {"$project": {
 	        "data.location":1,
 	        "data.surveyDate":1
 	    }}
-	]', or),
+	]', or, paste0('"', projectId, '"')),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -489,7 +573,7 @@ getTabZeroMongo <- function (species, speciesSN, sites, years, linepoint) {
           "as": "actID"
         }},
 	    {"$match": {
-	        "actID.projectId" : "89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c",
+	        "actID.projectId" : %s,
 	        "actID.verificationStatus" : "approved"
 	    }},
 	    {"$project": {
@@ -516,7 +600,7 @@ getTabZeroMongo <- function (species, speciesSN, sites, years, linepoint) {
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
+	]', paste0('"', projectId, '"'), paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -569,7 +653,7 @@ createOrEventDateCriteria <- function (years) {
     return(or)
 }
 
-getTabStandardCountMongo <- function (species, speciesSN, sites, years, linepoint) {
+getTabStandardCountMongo <- function (projectId, species, speciesSN, sites, years, linepoint) {
 
 	print(paste("start getTabStandardCountMongo ", Sys.time()))
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
@@ -589,7 +673,7 @@ getTabStandardCountMongo <- function (species, speciesSN, sites, years, linepoin
           "as": "actID"
         }},
 	    {"$match": {
-	        "actID.projectId" : "89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c",
+	        "actID.projectId" : %s,
 	        "actID.verificationStatus" : "approved"
 	    }},
 	    {"$project": {
@@ -614,7 +698,7 @@ getTabStandardCountMongo <- function (species, speciesSN, sites, years, linepoin
 	        %s : {"$gt":0},
 	        "ssn" : {"$in" : [%s]}
 	    }}
-	]', or, paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
+	]', or, paste0('"', projectId, '"'), paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -679,11 +763,11 @@ mergeTabs <- function (minus1, zeros, stdcount) {
 	return(final)
 }
 
-getTotalStandardData <- function (speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint) {
+getTotalStandardData <- function (projectId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint) {
 
-	minus1 <- getTabMinus1Mongo(species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
-	zeros <- getTabZeroMongo(species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
-	stdcount <- getTabStandardCountMongo(species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
+	minus1 <- getTabMinus1Mongo(projectId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
+	zeros <- getTabZeroMongo(projectId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
+	stdcount <- getTabStandardCountMongo(projectId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
 
 	print(paste("before final merge :", Sys.time()))
 

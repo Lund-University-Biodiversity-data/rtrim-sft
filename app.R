@@ -12,10 +12,11 @@ poolParams<-dbConnect(RPostgres::Postgres(), dbname = postgres_database_paramete
 
 #spdat2 <- getListsFromAla(poolParams)
 #spdat <- getSpeciesData(pool)
+#print(spdat)
+
 spdat <- getSpeciesDataParams(poolParams)
 #spdat <<- getSpeciesDataMongo()
-
-
+speciesMatch <- getMatchSpecies(poolParams)
 
 rangedat <- getLimitNorthSouth(poolParams)
 rangedat$Latlimit <- as.numeric(gsub('[[:alpha:]]|[[:punct:]]|[[:blank:]]', '', rangedat$Latitudgräns))
@@ -29,6 +30,7 @@ startyr <- getStartYear(poolParams)
  ## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
 onStop(function() {
   poolClose(pool)
+  poolClose(poolParams)
 })
 
 
@@ -98,7 +100,8 @@ ui <- fluidPage(theme = 'flatly',
                   ),
                   tabPanel('Get data', 
                            radioButtons('databasechoice', label = 'Select the database',
-                                        choices = list(`Good old sft database on PSQL` = 'psql',
+                                        choices = list(
+                                            #`Good old sft database on PSQL` = 'psql',
                                                        `Brand new mongoDB` = 'mongodb'),
                                         selected = 'mongodb'),
                            radioButtons('tabsel', label = 'Select monitoring scheme',
@@ -357,17 +360,27 @@ server <- function(input, output, session) {
   data <- eventReactive(input$sendquery,{
 
     if (input$databasechoice == "mongodb") {
-      rcdat <<- getSitesMongo()
+
+      if (input$tabsel == "totalstandard") {
+        projectId <- project_id_std
+      }
+      else if (input$tabsel == "sommarvintertarace") {
+        projectId <- project_id_std
+      }
+
+      rcdat <<- getSitesMongo(projectId)
       #print(rcdat)
 
-      sitesMatchMongo <- getMatchSitesMongo()
+      sitesMatchMongo <- getMatchSitesMongo(projectId)
 
       #regStdat <<- getBiotopSites(pool)
-      regStdat <<- getBiotopSitesMongo()
+      regStdat <<- getBiotopSitesMongo(projectId)
 
       print(Sys.time())
+      
+
       # get matching species
-      speciesMatch <- getMatchSpecies(poolParams, specart())
+      #speciesMatch <- getMatchSpecies(poolParams, specart())
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
       speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, specart())
 
@@ -377,7 +390,7 @@ server <- function(input, output, session) {
       else {
         linepoint <- "point" 
       }
-      dataMerge <<- getTotalStandardData (speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint)
+      dataMerge <<- getTotalStandardData (projectId = projectId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint)
 
       #output$downloadData <- downloadHandler(
       #  content = function(file) {
@@ -492,20 +505,27 @@ server <- function(input, output, session) {
   })
     
   output$specCheckbox <- renderUI({
-    #queryspec <- sprintf("select distinct art
-    #                      from %s
-    #                      where art>'000'
-    #                      order by art", input$tabsel)
-    #specs <- dbGetQuery(pool, queryspec)
-    queryspec <- sprintf("select distinct species_id as art
-                          from species_from_ala
-                          where species_id>'000'
-                          order by species_id", input$tabsel)
-    specs <- dbGetQuery(poolParams, queryspec)
-    specnames <- spdat$arthela[match(specs$art,spdat$art)]
-    speclist <- as.list(specs$art)
-    names(speclist) <- specnames
+    if (input$tabsel == "totalstandard") {
+      projectId <- project_id_std
+    }
+    else if (input$tabsel == "sommarvintertarace") {
+      projectId <- project_id_std
+    } 
+    
+    specsSN <- getUniquesSpeciesFromScheme(projectId, speciesMatch)
 
+    nbSp <- nrow(specsSN)
+    vSpecies <- vector()
+    for (iSp  in 1:nbSp) {
+      vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
+    }
+    vSpecies <- sort(vSpecies)
+    #print(vSpecies)
+    specnames <- spdat$arthela[match(vSpecies,spdat$art)]
+
+    speclist <- as.list(vSpecies)
+    names(speclist) <- specnames
+    
     tags$div(tags$div(strong(p("Select species"))),
              tags$div(align = 'left',
                       class = 'multicol6',

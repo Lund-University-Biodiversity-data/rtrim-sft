@@ -323,7 +323,7 @@ getMatchSpeciesSN <- function (poolParams, speciesSel) {
 getListBirdsUrl <- function (listId, speciesSel) {
 
 
-	url <- paste("https://lists.bioatlas.se/ws/speciesListItems/", listId, sep="")
+	url <- paste0(species_list_url, listId)
 	btc <- jsonlite::fromJSON(url)
 
 	speciesNames <- array()

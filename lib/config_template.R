@@ -21,10 +21,13 @@ mongo_url <<- "mongodb://localhost"
 mongo_user <<- "mongo"
 mongo_password <<- "blabla"
 
-species_list_api_url <<- "https://lists.bioatlas.se/ws/"
+species_list_api_url <<- "https://lists.biodiversitydata.se/ws/"
 species_list_url <<- paste0(species_list_api_url, "speciesListItems/")
 species_list_details_url <<- paste0(species_list_api_url, "species/")
-bird_list_id <<- "dr158"
+list_id_bird <<- "dr158"
+list_id_owl <<- "dr167"
+list_id_mammal <<- "dr159"
+list_id_amphibian <<- "dr160"
 
 path_project <<- "/home/blabla/rtrim-interface-development"
 path_project_extract <<- "/home/blabla/rtrim-interface-development/extract"

@@ -33,7 +33,11 @@ path_project <<- "/home/blabla/rtrim-interface-development"
 path_project_extract <<- "/home/blabla/rtrim-interface-development/extract"
 url_extract <<- "http://canmoveapp.ekol.lu.se/rtrim-sft-extract/"
 
-project_id_std <<- "dsfsfsadfsa"
-project_id_summer <<- "dsfsfsadfsa"
-project_id_winter <<- "dsfsfsadfsa"
+project_id_std <<- "89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"
+project_activity_id_std <<- "a14cf615-a26b-48a7-87fd-00360f3d03d6"
+
+project_id_punkt <<- "b7eee643-d5fe-465e-af38-36b217440bd2"
+project_activity_id_winter <<- "ccace44f-c37a-44de-a586-7880128046d3"
+project_activity_id_summer <<- "f4baa9fa-cfd4-4bc7-85bf-9a2c0f482504"
+
 project_id_iwc <<- "dsfsfsadfsa"

@@ -248,13 +248,13 @@ getSitesMongo <- function (projectId) {
 
 	if (projectId == project_id_std) {
 		res <- mongoConnection$iterate(
-		  query = sprintf('{"karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+		  query = sprintf('{"status":"active", karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
 		  fields = '{"karta":1, "extent.geometry.decimalLatitude":1}'
 		)
 	}
 	else if (projectId == project_id_punkt) {
 		res <- mongoConnection$iterate(
-		  query = sprintf('{"adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+		  query = sprintf('{"status":"active", "adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
 		  fields = '{"adminProperties.internalSiteId":1, "extent.geometry.decimalLatitude":1}'
 		)
 	}
@@ -352,13 +352,13 @@ getMatchSitesMongo <- function (projectId) {
 
 	if (projectId == project_id_std) {
 		res <- mongoConnection$iterate(
-		  query = sprintf('{"karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+		  query = sprintf('{"status":"active", "karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
 		  fields = '{"karta":1, "siteId":1}'
 		)
 	}
 	else if (projectId == project_id_punkt) {
 		res <- mongoConnection$iterate(
-		  query = sprintf('{"adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+		  query = sprintf('{"status":"active", "adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
 		  fields = '{"adminProperties.internalSiteId":1, "siteId":1}'
 		)
 	}
@@ -403,7 +403,7 @@ getBiotopSitesMongo <- function (projectId) {
 	mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	res <- mongoConnection$iterate(
-	  query = sprintf('{"karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+	  query = sprintf('{"status":"active", "karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
 	  fields = '{"karta":1, "commonName":1, "name":1, "LAN":1, "LSK":1, "Fjall104":1, "Fjall142":1}'
 	)
 

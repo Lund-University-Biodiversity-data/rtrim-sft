@@ -248,7 +248,7 @@ getSitesMongo <- function (projectId) {
 
 	if (projectId == project_id_std) {
 		res <- mongoConnection$iterate(
-		  query = sprintf('{"status":"active", karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+		  query = sprintf('{"status":"active", "karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
 		  fields = '{"karta":1, "extent.geometry.decimalLatitude":1}'
 		)
 	}

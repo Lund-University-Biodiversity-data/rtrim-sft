@@ -106,7 +106,7 @@ ui <- fluidPage(theme = 'flatly',
                                         selected = 'mongodb'),
                            radioButtons('tabsel', label = 'Select monitoring scheme',
                                         choices = list(Standardrutter = 'totalstandard'
-                                                       #, Sommarpunktrutter = 'totalsommar_pkt',
+                                                       , Sommarpunktrutter = 'totalsommar_pkt'#,
                                                        #Vinterpunktrutter =  'totalvinter_pkt',
                                                        #`Sjöfågeltaxering Vår` = 'totalvatmark',
                                                        #`IWC Januari` = 'total_iwc_januari',
@@ -363,13 +363,14 @@ server <- function(input, output, session) {
 
       if (input$tabsel == "totalstandard") {
         projectId <- project_id_std
+        projectActivityId <- project_activity_id_std
       }
-      else if (input$tabsel == "sommarvintertarace") {
-        projectId <- project_id_std
+      else if (input$tabsel == "totalsommar_pkt") {
+        projectId <- project_id_punkt
+        projectActivityId <- project_activity_id_summer
       }
 
       rcdat <<- getSitesMongo(projectId)
-      #print(rcdat)
 
       sitesMatchMongo <- getMatchSitesMongo(projectId)
 
@@ -390,7 +391,8 @@ server <- function(input, output, session) {
       else {
         linepoint <- "point" 
       }
-      dataMerge <<- getTotalStandardData (projectId = projectId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint)
+
+      dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint)
 
       #output$downloadData <- downloadHandler(
       #  content = function(file) {
@@ -399,7 +401,7 @@ server <- function(input, output, session) {
       #  }
       #)
 
-      exportSaveData(dataMerge, savedat = input$savedat, filename = input$filenameDat)
+      exportSaveData(dataMerge, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
     }
     else {
 
@@ -507,12 +509,14 @@ server <- function(input, output, session) {
   output$specCheckbox <- renderUI({
     if (input$tabsel == "totalstandard") {
       projectId <- project_id_std
+      projectActivityId <- project_activity_id_std
     }
-    else if (input$tabsel == "sommarvintertarace") {
-      projectId <- project_id_std
+    else if (input$tabsel == "totalsommar_pkt") {
+      projectId <- project_id_punkt
+      projectActivityId <- project_activity_id_summer
     } 
     
-    specsSN <- getUniquesSpeciesFromScheme(projectId, speciesMatch)
+    specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
 
     nbSp <- nrow(specsSN)
     vSpecies <- vector()

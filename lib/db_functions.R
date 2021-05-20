@@ -1,5 +1,5 @@
 
-getUniquesSpeciesFromScheme <- function (projectId, speciesList) {
+getUniquesSpeciesFromScheme <- function (projectActivityId, speciesList) {
 
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
@@ -15,7 +15,7 @@ getUniquesSpeciesFromScheme <- function (projectId, speciesList) {
         }},
         {"$unwind": "$activityId"},
 	    {"$match": {
-	        "actID.projectId" : %s,
+	        "actID.projectActivityId" : %s,
 	        "actID.verificationStatus" : "approved"
 	    }},
 	    {"$project": {
@@ -36,7 +36,7 @@ getUniquesSpeciesFromScheme <- function (projectId, speciesList) {
 	    {"$sort" : {
 		    "speciesUnique" : 1
 		}}
-	    ]', paste0('"', projectId, '"')),
+	    ]', paste0('"', projectActivityId, '"')),
 		options = '{"allowDiskUse":true}',
 		iterate = TRUE
 	)
@@ -246,10 +246,18 @@ getSitesMongo <- function (projectId) {
 
 	mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
-	res <- mongoConnection$iterate(
-	  query = sprintf('{"karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
-	  fields = '{"karta":1, "extent.geometry.decimalLatitude":1}'
-	)
+	if (projectId == project_id_std) {
+		res <- mongoConnection$iterate(
+		  query = sprintf('{"karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+		  fields = '{"karta":1, "extent.geometry.decimalLatitude":1}'
+		)
+	}
+	else if (projectId == project_id_punkt) {
+		res <- mongoConnection$iterate(
+		  query = sprintf('{"adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+		  fields = '{"adminProperties.internalSiteId":1, "extent.geometry.decimalLatitude":1}'
+		)
+	}
 
 	nbElt <- 0
 	vSite <- vector()
@@ -258,19 +266,21 @@ getSitesMongo <- function (projectId) {
 	while(!is.null(x <- res$one())){
 		nbElt <- nbElt +1
 
-		vSite[nbElt] <- x$karta
+		if (projectId == project_id_std) {
+			vSite[nbElt] <- x$karta
+		}
+		else if (projectId == project_id_punkt) {
+			vSite[nbElt] <- x$adminProperties$internalSiteId
+		}
 		vLat[nbElt] <- x$extent$geometry$decimalLatitude
 	}
 
-
-	#result <- array(c(vSite, vLat), dim=c(nbElt, 2, 1), dimnames=list(c(),c("site", "lat")))
 	result <- data.frame(vSite, vLat)
 	colnames(result) <- c("site", "lat")
 
 	return(result)
-
-	# db.site.find({karta:{$exists:1}, projects:"89383d0f-9735-4fe7-8eb4-8b2e9e9b7b5c"}, {karta:1, "extent.geometry.decimalLongitude":1}).
 }
+
 
 getMatchSpecies <- function (poolParams, speciesSel = "all") {
 
@@ -340,10 +350,18 @@ getMatchSitesMongo <- function (projectId) {
 
 	mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
-	res <- mongoConnection$iterate(
-	  query = sprintf('{"karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
-	  fields = '{"karta":1, "siteId":1}'
-	)
+	if (projectId == project_id_std) {
+		res <- mongoConnection$iterate(
+		  query = sprintf('{"karta":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+		  fields = '{"karta":1, "siteId":1}'
+		)
+	}
+	else if (projectId == project_id_punkt) {
+		res <- mongoConnection$iterate(
+		  query = sprintf('{"adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+		  fields = '{"adminProperties.internalSiteId":1, "siteId":1}'
+		)
+	}
 
 	nbElt <- 0
 	vSite <- vector()
@@ -352,7 +370,14 @@ getMatchSitesMongo <- function (projectId) {
 	sites <- array()
 
 	while(!is.null(x <- res$one())){
-		sites[[toString(x$siteId)]] <- x$karta
+
+		if (projectId == project_id_std) {
+			sites[[toString(x$siteId)]] <- x$karta
+		}
+		else if (projectId == project_id_punkt) {
+			sites[[toString(x$siteId)]] <- x$adminProperties$internalSiteId
+		}
+
 	}
 
 	return(sites)
@@ -428,10 +453,17 @@ getIWCData <- function (pool) {
 }
 
 
-getTabMinus1Mongo <- function (projectId, species, speciesSN, sites, years, linepoint) {
+getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint) {
 
 	print(paste("start getTabMinus1Mongo ", Sys.time()))
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
+
+	if (projectActivityId == project_activity_id_std) {
+		fieldCount = paste0(linepoint, "Count")
+	}
+	else {
+		fieldCount = paste0("individualCount")
+	}
 
 	res <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
@@ -445,7 +477,7 @@ getTabMinus1Mongo <- function (projectId, species, speciesSN, sites, years, line
         }},
         {"$unwind": "$activityId"},
 	    {"$match": {
-	        "actID.projectId" : %s,
+	        "actID.projectActivityId" : %s,
 	        "actID.verificationStatus" : "approved"
 	    }},
 	    {"$project": {
@@ -472,7 +504,7 @@ getTabMinus1Mongo <- function (projectId, species, speciesSN, sites, years, line
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', paste0('"', projectId, '"'), paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
+	]', paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), paste0('"', fieldCount, '"'), speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -511,9 +543,17 @@ getTabMinus1Mongo <- function (projectId, species, speciesSN, sites, years, line
 
 
 
-getTabZeroMongo <- function (projectId, species, speciesSN, sites, years, linepoint) {
+getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint) {
 
 	print(paste("start getTabZeroMongo ", Sys.time()))
+
+	if (projectActivityId == project_activity_id_std) {
+		fieldCount = paste0(linepoint, "Count")
+	}
+	else {
+		fieldCount = paste0("individualCount")
+	}
+
 
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
@@ -531,14 +571,14 @@ getTabZeroMongo <- function (projectId, species, speciesSN, sites, years, linepo
           "as": "actID"
         }},
 	    {"$match": {
-	        "actID.projectId" : %s,
+	        "actID.projectActivityId" : %s,
 	        "actID.verificationStatus" : "approved"
 	    }},
 	    {"$project": {
 	        "data.location":1,
 	        "data.surveyDate":1
 	    }}
-	]', or, paste0('"', projectId, '"')),
+	]', or, paste0('"', projectActivityId, '"')),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -573,7 +613,7 @@ getTabZeroMongo <- function (projectId, species, speciesSN, sites, years, linepo
           "as": "actID"
         }},
 	    {"$match": {
-	        "actID.projectId" : %s,
+	        "actID.projectActivityId" : %s,
 	        "actID.verificationStatus" : "approved"
 	    }},
 	    {"$project": {
@@ -600,11 +640,10 @@ getTabZeroMongo <- function (projectId, species, speciesSN, sites, years, linepo
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', paste0('"', projectId, '"'), paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
+	]', paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), paste0('"', fieldCount, '"'), speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
-
 
 	nbElt <- 0
 	vKartaMatch <- vector()
@@ -619,7 +658,6 @@ getTabZeroMongo <- function (projectId, species, speciesSN, sites, years, linepo
 
 	}
 
-
 	result2 <- data.frame(vKartaMatch, vArtMatch)
 	colnames(result2) <- c("site", "species")
 
@@ -627,6 +665,7 @@ getTabZeroMongo <- function (projectId, species, speciesSN, sites, years, linepo
 	result2 <- unique(result2)
 
 	resultMerge <- merge(x= result1, y=result2)
+
 
 	# add a 0 in last column
 	resultFinal <- data.frame(resultMerge, 0)
@@ -653,12 +692,19 @@ createOrEventDateCriteria <- function (years) {
     return(or)
 }
 
-getTabStandardCountMongo <- function (projectId, species, speciesSN, sites, years, linepoint) {
+getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint) {
 
-	print(paste("start getTabStandardCountMongo ", Sys.time()))
+	print(paste("start getTabCountMongo ", Sys.time()))
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
-	
+
+	if (projectActivityId == project_activity_id_std) {
+		fieldCount = paste0(linepoint, "Count")
+	}
+	else {
+		fieldCount = paste0("individualCount")
+	}
+
 	or <- createOrEventDateCriteria(years)
 
 	res <- mongoConnection$aggregate(sprintf('[
@@ -673,7 +719,7 @@ getTabStandardCountMongo <- function (projectId, species, speciesSN, sites, year
           "as": "actID"
         }},
 	    {"$match": {
-	        "actID.projectId" : %s,
+	        "actID.projectActivityId" : %s,
 	        "actID.verificationStatus" : "approved"
 	    }},
 	    {"$project": {
@@ -698,7 +744,7 @@ getTabStandardCountMongo <- function (projectId, species, speciesSN, sites, year
 	        %s : {"$gt":0},
 	        "ssn" : {"$in" : [%s]}
 	    }}
-	]', or, paste0('"', projectId, '"'), paste0('"', linepoint, "count", '"'), paste0('"',"$obs.", linepoint, "Count", '"'), paste0('"', linepoint, "count", '"'), speciesSN),
+	]', or, paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), paste0('"', fieldCount, '"'), speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -723,12 +769,22 @@ getTabStandardCountMongo <- function (projectId, species, speciesSN, sites, year
 		#vArt[nbElt] <- obs$species$scientificName
 		vArtMatch[nbElt] <- species[[toString(output$ssn)]]
 		vYear[nbElt] <- substr(output$surveydate, 1 , 4)
-		if (linepoint == "point") {
-			vCount[nbElt] <- output$pointcount
+
+		if (projectActivityId == project_activity_id_std) {
+			if (linepoint == "point") {
+				vCount[nbElt] <- output$pointCount
+			}
+			else {
+				vCount[nbElt] <- output$lineCount
+			}
+
 		}
 		else {
-			vCount[nbElt] <- output$linecount
+			vCount[nbElt] <- output$individualCount
 		}
+
+
+		
 
 
 	}
@@ -738,7 +794,7 @@ getTabStandardCountMongo <- function (projectId, species, speciesSN, sites, year
 
 	resRemoveDuplicate=unique(result)
 
-	print(paste("end getTabStandardCountMongo ", Sys.time()))
+	print(paste("end getTabCountMongo ", Sys.time()))
 
 	return(resRemoveDuplicate)
 
@@ -763,11 +819,11 @@ mergeTabs <- function (minus1, zeros, stdcount) {
 	return(final)
 }
 
-getTotalStandardData <- function (projectId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint) {
+getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint) {
 
-	minus1 <- getTabMinus1Mongo(projectId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
-	zeros <- getTabZeroMongo(projectId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
-	stdcount <- getTabStandardCountMongo(projectId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
+	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
+	zeros <- getTabZeroMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
+	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
 
 	print(paste("before final merge :", Sys.time()))
 

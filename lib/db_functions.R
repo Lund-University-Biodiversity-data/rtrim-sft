@@ -453,20 +453,27 @@ getIWCData <- function (pool) {
 }
 
 
-getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint) {
+getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod) {
 
 	print(paste("start getTabMinus1Mongo ", Sys.time()))
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
+	fieldCount <- "individualCount"
+	checkPeriod <- ""
+	condTotSupZero <- ""
 	if (projectActivityId == project_activity_id_std) {
-		fieldCount = paste0(linepoint, "Count")
+		fieldCount <- paste0(linepoint, "Count")
+
+		condTotSupZero <- sprintf('%s : {"$gt":0},', paste0('"', fieldCount, '"'))
 	}
-	else {
-		fieldCount = paste0("individualCount")
+	else if (projectActivityId == project_activity_id_winter) {
+		checkPeriod <- paste0('"data.period" : {"$in" : [', selectedPeriod,']},')
 	}
+
 
 	res <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
+			%s
 	        "status" : "active"
 	    }},
 	    {"$lookup": {
@@ -496,7 +503,7 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 	        "ssn": "$obs.species.scientificName"
 	    }},
 	    {"$match": {
-	        %s : {"$gt":0},
+	        %s
 	        "ssn" : {"$in" : [%s]}
 	    }},
 	    {"$group": {
@@ -504,7 +511,7 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), paste0('"', fieldCount, '"'), speciesSN),
+	]', checkPeriod, paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -528,7 +535,6 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 	result <- data.frame(vKartaMatch, vArtMatch, vCount)
 
 
-
 	mergeR <- merge(result, seq(years[1],years[2]))
 	colnames(mergeR) <- c("site", "species", "count", "time")
 
@@ -543,24 +549,32 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 
 
 
-getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint) {
+getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod) {
 
 	print(paste("start getTabZeroMongo ", Sys.time()))
 
+	fieldCount <- "individualCount"
+	checkPeriod <- ""
+	condTotSupZero <- ""
+	or <- createOrEventDateCriteria(years)
+
 	if (projectActivityId == project_activity_id_std) {
-		fieldCount = paste0(linepoint, "Count")
+		fieldCount <- paste0(linepoint, "Count")
+		
+		condTotSupZero <- sprintf('%s : {"$gt":0},', paste0('"', fieldCount, '"'))
 	}
-	else {
-		fieldCount = paste0("individualCount")
+	else if (projectActivityId == project_activity_id_winter) {
+		checkPeriod <- paste0('"data.period" : {"$in" : [', selectedPeriod,']},')
+		or <- createOrEventDateCriteria(years, vinter=TRUE)
+		listMonthVinterPreviousYr <- c('01', '02', '03', '04')
 	}
 
 
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
-	or <- createOrEventDateCriteria(years)
-
 	res1 <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
+			%s
 	        "status" : "active",
 	        %s 
 	    }},
@@ -578,7 +592,7 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 	        "data.location":1,
 	        "data.surveyDate":1
 	    }}
-	]', or, paste0('"', projectActivityId, '"')),
+	]', checkPeriod, or, paste0('"', projectActivityId, '"')),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -595,15 +609,33 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 
 		#vKarta[nbElt] <- toString(output$data$location)
 		vKartaMatch[nbElt] <- sites[[toString(output$data$location)]]
-		vYear[nbElt] <- substr(output$data$surveyDate, 1 , 4)
+
+		if (projectActivityId == project_activity_id_winter) {
+			month <- substr(output$data$surveyDate, 6 , 7)
+			if (month %in% listMonthVinterPreviousYr) {
+				yr <- substr(output$data$surveyDate, 1 , 4)
+				vYear[nbElt] <- paste0(strtoi(yr)-1)
+			}
+
+			else {
+				vYear[nbElt] <- substr(output$data$surveyDate, 1 , 4)
+			}
+		}
+		else {
+			vYear[nbElt] <- substr(output$data$surveyDate, 1 , 4)
+		}
 
 	}
 
+
 	result1 <- data.frame(vKartaMatch,  vYear)
 	colnames(result1) <- c("site", "time")
+	result1 <- unique(result1)
+
 
 	res2 <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
+			%s
 	        "status" : "active"
 	    }},
 	    {"$lookup": {
@@ -632,7 +664,7 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 	        "ssn": "$obs.species.scientificName"
 	    }},
 	    {"$match": {
-	        %s : {"$gt":0},
+	        %s
 	        "ssn" : {"$in" : [%s]}
 	    }},
 	    {"$group": {
@@ -640,7 +672,7 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), paste0('"', fieldCount, '"'), speciesSN),
+	]', checkPeriod, paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -666,11 +698,9 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 
 	resultMerge <- merge(x= result1, y=result2)
 
-
 	# add a 0 in last column
 	resultFinal <- data.frame(resultMerge, 0)
 	colnames(resultFinal) <- c("site", "time", "species", "count")
-
 
 	print(paste("end getTabZeroMongo ", Sys.time()))
 
@@ -680,35 +710,66 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 }
 
 
-createOrEventDateCriteria <- function (years) {
-	or <- '"$or" : [ '
-	for (iYear in years[1]:tail(years, n=1)){ 
-		or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'", "$options" : "i" } }, ', sep="")
+createOrEventDateCriteria <- function (years, vinter= FALSE) {
+
+	# for the winter routes, the winter starts on september of year Y, until april of year Y+1 !
+	if (vinter) {
+		or <- '"$or" : [ '
+		for (iYear in years[1]:tail(years, n=1)){ 
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-09", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-10", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-11", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-12", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',(iYear+1),'-01", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',(iYear+1),'-02", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',(iYear+1),'-03", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',(iYear+1),'-04", "$options" : "i" } }, ', sep="")
+		}
+
+		# repeat the same at the end of the OR to deal with the comma
+		or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-09", "$options" : "i" } }] ', sep="")
+
+
 	}
 
-	# repeat the same at the end of the OR to deal with the comma
-    or <- paste (or, '{"data.surveyDate": { "$regex" : "', iYear, '", "$options" : "i" } }]', sep="")
+	else {
+		or <- '"$or" : [ '
+		for (iYear in years[1]:tail(years, n=1)){ 
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'", "$options" : "i" } }, ', sep="")
+		}
+
+		# repeat the same at the end of the OR to deal with the comma
+	    or <- paste (or, '{"data.surveyDate": { "$regex" : "', iYear, '", "$options" : "i" } }]', sep="")
+	}
 
     return(or)
 }
 
-getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint) {
+getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod) {
 
 	print(paste("start getTabCountMongo ", Sys.time()))
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
+	fieldCount <- "individualCount"
+	checkPeriod <- ""
+	condTotSupZero <- ""
+	or <- createOrEventDateCriteria(years)
 
 	if (projectActivityId == project_activity_id_std) {
-		fieldCount = paste0(linepoint, "Count")
+		fieldCount <- paste0(linepoint, "Count")
+
+		condTotSupZero <- sprintf('%s : {"$gt":0},', paste0('"', fieldCount, '"'))
 	}
-	else {
-		fieldCount = paste0("individualCount")
+	else if (projectActivityId == project_activity_id_winter) {
+		checkPeriod <- paste0('"data.period" : {"$in" : [', selectedPeriod,']},')
+		or <- createOrEventDateCriteria(years, vinter=TRUE)
+		listMonthVinterPreviousYr <- c('01', '02', '03', '04')
 	}
 
-	or <- createOrEventDateCriteria(years)
 
 	res <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
+			%s
 	        "status" : "active",
 	        %s 
 	    }},
@@ -741,10 +802,10 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 	        "surveydate": 1
 	    }},
 	    {"$match": {
-	        %s : {"$gt":0},
+	        %s
 	        "ssn" : {"$in" : [%s]}
 	    }}
-	]', or, paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), paste0('"', fieldCount, '"'), speciesSN),
+	]', checkPeriod, or, paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -768,7 +829,24 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 		vKartaMatch[nbElt] <- sites[[toString(output$site)]]
 		#vArt[nbElt] <- obs$species$scientificName
 		vArtMatch[nbElt] <- species[[toString(output$ssn)]]
-		vYear[nbElt] <- substr(output$surveydate, 1 , 4)
+
+		#vYear[nbElt] <- substr(output$surveydate, 1 , 4)
+		if (projectActivityId == project_activity_id_winter) {
+			month <- substr(output$surveydate, 6 , 7)
+			if (month %in% listMonthVinterPreviousYr) {
+				yr <- substr(output$surveydate, 1 , 4)
+				vYear[nbElt] <- paste0(strtoi(yr)-1)
+			}
+
+			else {
+				vYear[nbElt] <- substr(output$surveydate, 1 , 4)
+			}
+		}
+		else {
+			vYear[nbElt] <- substr(output$surveydate, 1 , 4)
+
+		}
+
 
 		if (projectActivityId == project_activity_id_std) {
 			if (linepoint == "point") {
@@ -792,11 +870,15 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 	result <- data.frame(vKartaMatch, vArtMatch, vYear, vCount)
 	colnames(result) <- c("site", "species", "time", "count")
 
-	resRemoveDuplicate=unique(result)
+	#resRemoveDuplicate=unique(result)
+	resAggregate <- aggregate(result$count, by=list(site=result$site, species=result$species, time=result$time), FUN=max)
+	colnames(resAggregate) <- c("site", "species", "time", "count")
 
 	print(paste("end getTabCountMongo ", Sys.time()))
 
-	return(resRemoveDuplicate)
+		write.csv2(resAggregate, file = paste0('extract/tabcount.csv'),	          row.names = FALSE)
+
+	return(resAggregate)
 
 
 }
@@ -819,11 +901,11 @@ mergeTabs <- function (minus1, zeros, stdcount) {
 	return(final)
 }
 
-getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint) {
+getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint, selectedPeriod) {
 
-	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
-	zeros <- getTabZeroMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
-	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint)
+	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod)
+	zeros <- getTabZeroMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod)
+	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod)
 
 	print(paste("before final merge :", Sys.time()))
 

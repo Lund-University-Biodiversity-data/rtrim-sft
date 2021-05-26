@@ -4,6 +4,8 @@ source('lib/db_functions.R')
 source('lib/UsefulFunctions.R')
 source('lib/SummarizeFunctions.R')
 
+
+
 # for connection from windows computer, ran locally
 #pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
 
@@ -106,8 +108,8 @@ ui <- fluidPage(theme = 'flatly',
                                         selected = 'mongodb'),
                            radioButtons('tabsel', label = 'Select monitoring scheme',
                                         choices = list(Standardrutter = 'totalstandard'
-                                                       , Sommarpunktrutter = 'totalsommar_pkt'#,
-                                                       #Vinterpunktrutter =  'totalvinter_pkt',
+                                                       , Sommarpunktrutter = 'totalsommar_pkt',
+                                                       Vinterpunktrutter =  'totalvinter_pkt'#,
                                                        #`Sjöfågeltaxering Vår` = 'totalvatmark',
                                                        #`IWC Januari` = 'total_iwc_januari',
                                                        #`IWC September` = 'total_iwc_september',
@@ -361,13 +363,30 @@ server <- function(input, output, session) {
 
     if (input$databasechoice == "mongodb") {
 
+      linepoint <- ""
+      selectedPeriod <- ""
+
       if (input$tabsel == "totalstandard") {
         projectId <- project_id_std
         projectActivityId <- project_activity_id_std
+
+        if (input$linepoint) {
+          linepoint <- "line"
+        }
+        else {
+          linepoint <- "point" 
+        }
       }
       else if (input$tabsel == "totalsommar_pkt") {
         projectId <- project_id_punkt
         projectActivityId <- project_activity_id_summer
+      }
+      else if (input$tabsel == "totalvinter_pkt") {
+        projectId <- project_id_punkt
+        projectActivityId <- project_activity_id_winter
+
+        selectedPeriod <- paste0('"', paste0(input$specper, collapse = '","'), '"')
+
       }
 
       rcdat <<- getSitesMongo(projectId)
@@ -385,14 +404,7 @@ server <- function(input, output, session) {
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
       speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, specart())
 
-      if (input$linepoint) {
-        linepoint <- "line"
-      }
-      else {
-        linepoint <- "point" 
-      }
-
-      dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint)
+      dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod)
 
       #output$downloadData <- downloadHandler(
       #  content = function(file) {
@@ -515,7 +527,11 @@ server <- function(input, output, session) {
       projectId <- project_id_punkt
       projectActivityId <- project_activity_id_summer
     } 
-    
+    else if (input$tabsel == "totalvinter_pkt") {
+      projectId <- project_id_punkt
+      projectActivityId <- project_activity_id_winter
+    } 
+
     specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
 
     nbSp <- nrow(specsSN)

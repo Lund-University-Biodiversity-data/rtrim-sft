@@ -876,8 +876,6 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 
 	print(paste("end getTabCountMongo ", Sys.time()))
 
-		write.csv2(resAggregate, file = paste0('extract/tabcount.csv'),	          row.names = FALSE)
-
 	return(resAggregate)
 
 

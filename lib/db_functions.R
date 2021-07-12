@@ -109,7 +109,19 @@ getListsFromAla <- function (poolParams) {
 
 		    data_json_species_details = fromJSON(file=paste0(species_list_details_url, data_json_species[[iS]]$lsid))
 
-		    nbKeys <- length(data_json_species_details[[1]]$kvpValues)
+		    iAL <- 1
+		    if (data_json_species_details[[1]]$dataResourceUid == animal_list) {
+		    	iAL <- 1
+		    }
+		    else if (data_json_species_details[[2]]$dataResourceUid == animal_list) {
+		    	iAL <- 2
+		    }
+		    else if (data_json_species_details[[3]]$dataResourceUid == animal_list) {
+		    	iAL <- 3
+		    }
+
+
+		    nbKeys <- length(data_json_species_details[[iAL]]$kvpValues)
 
 		    iKey <- 1
 		    continue <- TRUE
@@ -121,24 +133,26 @@ getListsFromAla <- function (poolParams) {
 
 		    while(continue && iKey <= nbKeys){
 
-		      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "art") {
-		        art <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+
+
+		      if (data_json_species_details[[iAL]]$kvpValues[[iKey]]$key == "art") {
+		        art <- data_json_species_details[[iAL]]$kvpValues[[iKey]]$value
 		      }
 
-		      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "arthela") {
-		        arthela <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+		      if (data_json_species_details[[iAL]]$kvpValues[[iKey]]$key == "arthela") {
+		        arthela <- data_json_species_details[[iAL]]$kvpValues[[iKey]]$value
 		      }
 
-		      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "englishname") {
-		        englishname <-data_json_species_details[[1]]$kvpValues[[iKey]]$value
+		      if (data_json_species_details[[iAL]]$kvpValues[[iKey]]$key == "englishname") {
+		        englishname <-data_json_species_details[[iAL]]$kvpValues[[iKey]]$value
 		      }
 
-		      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "worldname") {
-		        worldname <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+		      if (data_json_species_details[[iAL]]$kvpValues[[iKey]]$key == "worldname") {
+		        worldname <- data_json_species_details[[iAL]]$kvpValues[[iKey]]$value
 		      }
 
-		      if (data_json_species_details[[1]]$kvpValues[[iKey]]$key == "rank") {
-		        rank <- data_json_species_details[[1]]$kvpValues[[iKey]]$value
+		      if (data_json_species_details[[iAL]]$kvpValues[[iKey]]$key == "rank") {
+		        rank <- data_json_species_details[[iAL]]$kvpValues[[iKey]]$value
 		      }
 
 		      iKey <- iKey+1
@@ -159,7 +173,7 @@ getListsFromAla <- function (poolParams) {
 		  			"VALUES (",
 		  			"'", str_pad(art, 3, side="left", pad="0"), "', ",
 	  				"'", arthela, "',  ",
-	  				"'", data_json_species[[iS]]$name, "',  ",
+	  				"'", str_replace(data_json_species[[iS]]$name, "'", "''"), "',  ",
 	  				"'", str_replace(englishname, "'", "''"), "',  ",
 	  				"'", str_replace(worldname, "'", "''"), "',  ",
 	  				"", rank, ",  ",

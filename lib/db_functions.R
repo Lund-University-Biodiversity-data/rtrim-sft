@@ -414,7 +414,7 @@ getBiotopSitesMongo <- function (projectId) {
 
 	res <- mongoConnection$iterate(
 	  query = sprintf('{"status":"active", "adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
-	  fields = '{"adminProperties.internalSiteId":1, "commonName":1, "name":1, "LAN":1, "LSK":1, "Fjall104":1, "Fjall142":1}'
+	  fields = '{"adminProperties.internalSiteId":1, "commonName":1, "name":1, "adminProperties.lan":1, "adminProperties.lsk":1, "adminProperties.fjall104":1, "adminProperties.fjall142":1}'
 	)
 
 	nbElt <- 0
@@ -432,13 +432,13 @@ getBiotopSitesMongo <- function (projectId) {
 		vKarta[nbElt] <- x$adminProperties$internalSiteId
 		vName[nbElt] <- x$name
 		vCommonName[nbElt] <- x$commonName
-		if (exists("x$LAN")) vLan[nbElt] <- x$LAN
+		if (exists("x$adminProperties$lan")) vLan[nbElt] <- x$adminProperties$lan
 		else vLan[nbElt] <- "a"
-		if (exists("x$LSK")) vLsk[nbElt] <- x$LSK
+		if (exists("x$adminProperties$lsk")) vLsk[nbElt] <- x$adminProperties$lsk
 		else vLsk[nbElt] <- "b"
-		if (exists("x$Fjall104")) vF104[nbElt] <- x$Fjall104
+		if (exists("x$adminProperties$fjall104")) vF104[nbElt] <- x$adminProperties$fjall104
 		else vF104[nbElt] <- FALSE
-		if (exists("x$Fjall104")) vF142[nbElt] <- x$Fjall142
+		if (exists("x$adminProperties$fjall142")) vF142[nbElt] <- x$adminProperties$fjall142
 		else vF142[nbElt] <- FALSE
 	}
 

@@ -339,13 +339,13 @@ server <- function(input, output, session) {
   
   specrouteAnalyze <- reactive({
     switch(input$specrtAnalyze,
-           all = regStdat$karta,
-           lan = regStdat$karta[regStdat$lan%in%input$lanspecrtAnalyze],
-           lsk = regStdat$karta[regStdat$lsk%in%input$lskspecrtAnalyze],
-           fjl104 = regStdat$karta[regStdat$fjall104==input$fjlspecrtAnalyze],
-           fjl142 = regStdat$karta[regStdat$fjall142==input$fjlspecrtAnalyze],
-           S = regStdat$karta[regStdat$karta%in%rcdat$site[rcdat$lat < 60]],
-           N = regStdat$karta[regStdat$karta%in%rcdat$site[rcdat$lat > 60]],
+           all = regStdat$internalSiteId,
+           lan = regStdat$internalSiteId[regStdat$lan%in%input$lanspecrtAnalyze],
+           lsk = regStdat$internalSiteId[regStdat$lsk%in%input$lskspecrtAnalyze],
+           fjl104 = regStdat$internalSiteId[regStdat$fjall104==input$fjlspecrtAnalyze],
+           fjl142 = regStdat$internalSiteId[regStdat$fjall142==input$fjlspecrtAnalyze],
+           S = regStdat$internalSiteId[regStdat$internalSiteId%in%rcdat$site[rcdat$lat < 60]],
+           N = regStdat$internalSiteId[regStdat$internalSiteId%in%rcdat$site[rcdat$lat > 60]],
            ind = input$indspecrtAnalyze)
   })
   
@@ -618,13 +618,13 @@ server <- function(input, output, session) {
   })
   
   output$indrtCheckboxAnalyze <- renderUI({
-    rts <- paste(regStdat$karta, regStdat$namn)
+    rts <- paste(regStdat$internalSiteId, regStdat$namn)
     tags$div(tags$div(strong(p("Select route(s)"))),
              tags$div(align = 'left',
                       class = 'multicol8',
                       checkboxGroupInput(inputId = 'indspecrtAnalyze', label = NULL,
                                          choiceNames = as.list(rts),
-                                         choiceValues = as.list(regStdat$karta),
+                                         choiceValues = as.list(regStdat$internalSiteId),
                                          selected = NULL)
              )
     )

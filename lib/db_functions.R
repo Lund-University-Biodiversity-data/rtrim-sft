@@ -431,7 +431,8 @@ getBiotopSitesMongo <- function (projectId) {
 
 		vKarta[nbElt] <- x$adminProperties$internalSiteId
 		vName[nbElt] <- x$name
-		vCommonName[nbElt] <- x$commonName
+		if (exists("x$commonName")) vCommonName[nbElt] <- x$commonName
+		else vCommonName[nbElt] <- "-"
 		if (exists("x$adminProperties$lan")) vLan[nbElt] <- x$adminProperties$lan
 		else vLan[nbElt] <- "a"
 		if (exists("x$adminProperties$lsk")) vLsk[nbElt] <- x$adminProperties$lsk

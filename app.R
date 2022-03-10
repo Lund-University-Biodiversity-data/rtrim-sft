@@ -145,6 +145,13 @@ ui <- fluidPage(theme = 'flatly',
                            conditionalPanel(condition = 'input.specsp == "ind"',
                                             uiOutput('specCheckbox')),
                            hr(),
+                           checkboxGroupInput('specifCorrections', label = 'Specific corrections',
+                                        choices = list('Bergfink#248 > 50000 = 50000' = 'fixArt248'
+                                                       #'Tallbit#242 > 50000 = 50000' = 'fixArt242',
+                                                       #'RödGlada#43 > 30 = 30' = 'fixArt43'
+                                                ),
+                                        selected = c('fixArt248'), inline = TRUE),
+                           hr(),
                            fluidRow(column(6,
                                            checkboxGroupInput('savedat',
                                               label = 'Data output to (will always be available in app)?', 
@@ -361,6 +368,13 @@ server <- function(input, output, session) {
   
   data <- eventReactive(input$sendquery,{
 
+    if ("fixArt248"%in%input$specifCorrections) {
+        fixArt248 = TRUE
+    }
+    else {
+        fixArt248 = FALSE
+    }
+
     if (input$databasechoice == "mongodb") {
 
       linepoint <- ""
@@ -404,7 +418,7 @@ server <- function(input, output, session) {
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
       speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, specart())
 
-      dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod)
+      dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, fixArt248 = fixArt248)
 
       #output$downloadData <- downloadHandler(
       #  content = function(file) {

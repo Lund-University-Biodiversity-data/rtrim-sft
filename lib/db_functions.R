@@ -885,11 +885,39 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 	resAggregate <- aggregate(result$count, by=list(site=result$site, species=result$species, time=result$time), FUN=max)
 	colnames(resAggregate) <- c("site", "species", "time", "count")
 
+
+
+
 	print(paste("end getTabCountMongo ", Sys.time()))
 
 	return(resAggregate)
 
 
+}
+
+applySpecificCorrections <- function (fullData, fixArt248) {
+
+
+	print(paste("start applySpecificCorrections ", Sys.time()))
+
+	fullDataFinal <- fullData
+
+	if (fixArt248) {
+
+		# VinPKT 
+		# Running BEFIN (Brambling, 248) in winter
+		# by changing the very highest values per route (50000+) 
+		# to  a lower number (now 50000)
+		print(fullDataFinal["count"][(fullDataFinal$count>50000 & fullDataFinal$species=="248"),])
+		fullDataFinal["count"][(fullDataFinal$count>50000 & fullDataFinal$species=="248"),] <- 50000
+
+		print("fixArt248 done")
+
+	}
+
+	print(paste("end applySpecificCorrections ", Sys.time()))
+	
+	return(fullDataFinal)
 }
 
 
@@ -910,7 +938,7 @@ mergeTabs <- function (minus1, zeros, stdcount) {
 	return(final)
 }
 
-getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint, selectedPeriod) {
+getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint, selectedPeriod, fixArt248) {
 
 	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod)
 #write.csv(minus1, file = 'minus.csv', row.names = FALSE)
@@ -918,6 +946,8 @@ getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sites
 #write.csv(zeros, file = 'zeros.csv', row.names = FALSE)
 
 	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod)
+
+	stdcount <- applySpecificCorrections(stdcount, fixArt248)
 
 	print(paste("before final merge :", Sys.time()))
 

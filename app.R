@@ -131,7 +131,7 @@ ui <- fluidPage(theme = 'flatly',
                                                                selected = 3, inline = TRUE)
                                             ),
                            hr(),
-                           uiOutput('yrSlider'),
+                           withSpinner(uiOutput('yrSlider')),
                            hr(),
                            radioButtons('specsp', label = 'Select species set',
                                         choices = list(`All available bird species` = 'all',
@@ -143,7 +143,7 @@ ui <- fluidPage(theme = 'flatly',
                                                        ),
                                         selected = 'all'),
                            conditionalPanel(condition = 'input.specsp == "ind"',
-                                            uiOutput('specCheckbox')),
+                                            withSpinner(uiOutput('specCheckbox'))),
                            hr(),
                            checkboxGroupInput('specifCorrections', label = 'Specific corrections',
                                         choices = list('RödGlada#43 > 30 = 30' = 'fixArt43',
@@ -553,7 +553,7 @@ server <- function(input, output, session) {
     } 
 
     specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
-print("Species list ready")
+
     nbSp <- nrow(specsSN)
     vSpecies <- vector()
     for (iSp  in 1:nbSp) {

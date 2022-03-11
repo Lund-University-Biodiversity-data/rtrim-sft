@@ -909,8 +909,21 @@ applySpecificCorrections <- function (fullData, correctionsArt) {
 		# Running RÖGLA (Red Kite, 043) in winter
 		# by changing the very highest values per route (50+) 
 		# to  a lower number (now 40, well 30)
-		print0(cat("fixing ", length(fullDataFinal["count"][(fullDataFinal$count>30 & fullDataFinal$species=="043"),]), " row(s) for correctionsArt043"))
+		print(cat("fixing", length(fullDataFinal["count"][(fullDataFinal$count>30 & fullDataFinal$species=="043"),]), "row(s) for correctionsArt043"))
 		fullDataFinal["count"][(fullDataFinal$count>30 & fullDataFinal$species=="043"),] <- 30
+	}
+
+	if (correctionsArt$s242 == TRUE) {
+
+		year242 = c(1984, 1986, 1994)
+
+		# VinPKT 
+		# Running TABIT (Pine Grosbeak, 242) in winter
+		# by actively removing three changepoints (1984, 1986 and 1994). The years 1984 and 1994 would actually be removed anyway
+		# by autodelete (0 observations in these years), but 1986 has 1 bird seen, so 1986 must be removed in this way.
+		print(cat("fixing", length(fullDataFinal["count"][(fullDataFinal$count>0 & fullDataFinal$species=="242" & fullDataFinal$time %in% year242),]), "row(s) for correctionsArt242"))
+		fullDataFinal["count"][(fullDataFinal$count>0 & fullDataFinal$species=="242" & fullDataFinal$time %in% year242),] <- -1
+
 	}
 
 	if (correctionsArt$s248 == TRUE) {
@@ -919,7 +932,7 @@ applySpecificCorrections <- function (fullData, correctionsArt) {
 		# Running BEFIN (Brambling, 248) in winter
 		# by changing the very highest values per route (50000+) 
 		# to  a lower number (now 50000)
-		print0(cat("fixing ", length(fullDataFinal["count"][(fullDataFinal$count>50000 & fullDataFinal$species=="248"),]), " row(s) for correctionsArt248"))
+		print(cat("fixing", length(fullDataFinal["count"][(fullDataFinal$count>50000 & fullDataFinal$species=="248"),]), "row(s) for correctionsArt248"))
 		fullDataFinal["count"][(fullDataFinal$count>50000 & fullDataFinal$species=="248"),] <- 50000
 
 	}

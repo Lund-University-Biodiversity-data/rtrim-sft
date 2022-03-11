@@ -146,9 +146,9 @@ ui <- fluidPage(theme = 'flatly',
                                             uiOutput('specCheckbox')),
                            hr(),
                            checkboxGroupInput('specifCorrections', label = 'Specific corrections',
-                                        choices = list('Bergfink#248 > 50000 = 50000' = 'fixArt248',
-                                                       #'Tallbit#242 > 50000 = 50000' = 'fixArt242',
-                                                       'RödGlada#43 > 30 = 30' = 'fixArt43'
+                                        choices = list('RödGlada#43 > 30 = 30' = 'fixArt43',
+                                                       'Tallbit#242 > 0 = -1 (1984/1986/1996 only)' = 'fixArt242',
+                                                       'Bergfink#248 > 50000 = 50000' = 'fixArt248'
                                                 ),
                                         selected = c(), inline = TRUE),
                            hr(),

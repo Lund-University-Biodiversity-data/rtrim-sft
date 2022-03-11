@@ -922,7 +922,7 @@ applySpecificCorrections <- function (fullData, correctionsArt) {
 		# by actively removing three changepoints (1984, 1986 and 1994). The years 1984 and 1994 would actually be removed anyway
 		# by autodelete (0 observations in these years), but 1986 has 1 bird seen, so 1986 must be removed in this way.
 		print(cat("fixing", length(fullDataFinal["count"][(fullDataFinal$count>0 & fullDataFinal$species=="242" & fullDataFinal$time %in% year242),]), "row(s) for correctionsArt242"))
-		fullDataFinal["count"][(fullDataFinal$count>0 & fullDataFinal$species=="242" & fullDataFinal$time %in% year242),] <- -1
+		fullDataFinal["count"][(fullDataFinal$count>0 & fullDataFinal$species=="242" & fullDataFinal$time %in% year242),] <- 0
 
 	}
 

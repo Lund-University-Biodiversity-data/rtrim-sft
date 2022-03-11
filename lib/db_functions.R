@@ -895,25 +895,35 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 
 }
 
-applySpecificCorrections <- function (fullData, fixArt248) {
+applySpecificCorrections <- function (fullData, correctionsArt) {
 
 
 	print(paste("start applySpecificCorrections ", Sys.time()))
 
 	fullDataFinal <- fullData
 
-	if (fixArt248) {
+	
+
+	if (correctionsArt$s043 == TRUE) {
+		# VinPKT 
+		# Running RÖGLA (Red Kite, 043) in winter
+		# by changing the very highest values per route (50+) 
+		# to  a lower number (now 40, well 30)
+		print0(cat("fixing ", length(fullDataFinal["count"][(fullDataFinal$count>30 & fullDataFinal$species=="043"),]), " row(s) for correctionsArt043"))
+		fullDataFinal["count"][(fullDataFinal$count>30 & fullDataFinal$species=="043"),] <- 30
+	}
+
+	if (correctionsArt$s248 == TRUE) {
 
 		# VinPKT 
 		# Running BEFIN (Brambling, 248) in winter
 		# by changing the very highest values per route (50000+) 
 		# to  a lower number (now 50000)
-		print(fullDataFinal["count"][(fullDataFinal$count>50000 & fullDataFinal$species=="248"),])
+		print0(cat("fixing ", length(fullDataFinal["count"][(fullDataFinal$count>50000 & fullDataFinal$species=="248"),]), " row(s) for correctionsArt248"))
 		fullDataFinal["count"][(fullDataFinal$count>50000 & fullDataFinal$species=="248"),] <- 50000
 
-		print("fixArt248 done")
-
 	}
+
 
 	print(paste("end applySpecificCorrections ", Sys.time()))
 	
@@ -938,7 +948,7 @@ mergeTabs <- function (minus1, zeros, stdcount) {
 	return(final)
 }
 
-getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint, selectedPeriod, fixArt248) {
+getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint, selectedPeriod, correctionsArt) {
 
 	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod)
 #write.csv(minus1, file = 'minus.csv', row.names = FALSE)
@@ -947,7 +957,7 @@ getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sites
 
 	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod)
 
-	stdcount <- applySpecificCorrections(stdcount, fixArt248)
+	stdcount <- applySpecificCorrections(stdcount, correctionsArt)
 
 	print(paste("before final merge :", Sys.time()))
 

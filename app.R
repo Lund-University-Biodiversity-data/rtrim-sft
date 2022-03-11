@@ -146,11 +146,11 @@ ui <- fluidPage(theme = 'flatly',
                                             uiOutput('specCheckbox')),
                            hr(),
                            checkboxGroupInput('specifCorrections', label = 'Specific corrections',
-                                        choices = list('Bergfink#248 > 50000 = 50000' = 'fixArt248'
+                                        choices = list('Bergfink#248 > 50000 = 50000' = 'fixArt248',
                                                        #'Tallbit#242 > 50000 = 50000' = 'fixArt242',
-                                                       #'RödGlada#43 > 30 = 30' = 'fixArt43'
+                                                       'RödGlada#43 > 30 = 30' = 'fixArt43'
                                                 ),
-                                        selected = c('fixArt248'), inline = TRUE),
+                                        selected = c(), inline = TRUE),
                            hr(),
                            fluidRow(column(6,
                                            checkboxGroupInput('savedat',
@@ -368,11 +368,17 @@ server <- function(input, output, session) {
   
   data <- eventReactive(input$sendquery,{
 
-    if ("fixArt248"%in%input$specifCorrections) {
-        fixArt248 = TRUE
+    correctionsArt <- data.frame(TRUE, TRUE, FALSE)
+    colnames(correctionsArt) <- c("s043", "s242", "s248")
+
+    if ("fixArt43"%in%input$specifCorrections) {
+        correctionsArt$s043 = TRUE
     }
-    else {
-        fixArt248 = FALSE
+    if ("fixArt242"%in%input$specifCorrections) {
+        correctionsArt$s242 = TRUE
+    }
+    if ("fixArt248"%in%input$specifCorrections) {
+        correctionsArt$s248 = TRUE
     }
 
     if (input$databasechoice == "mongodb") {
@@ -418,7 +424,7 @@ server <- function(input, output, session) {
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
       speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, specart())
 
-      dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, fixArt248 = fixArt248)
+      dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
 
       #output$downloadData <- downloadHandler(
       #  content = function(file) {
@@ -547,7 +553,7 @@ server <- function(input, output, session) {
     } 
 
     specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
-
+print("Species list ready")
     nbSp <- nrow(specsSN)
     vSpecies <- vector()
     for (iSp  in 1:nbSp) {

@@ -220,7 +220,9 @@ ui <- fluidPage(theme = 'flatly',
                                                                                         `Counties (län)` = 'lan',
                                                                                         `Province (landskap)` = 'lsk',
                                                                                         `Mountains (Fjällen) n=104` = 'fjl104',
+                                                                                        `EJ Mountains (Fjällen) n=104` = 'fjl104_inv',
                                                                                         `Mountains (Fjällen) n=142` = 'fjl142',
+                                                                                        `EJ Mountains (Fjällen) n=142` = 'fjl142_inv',
                                                                                         `Southern routes (<60 N)` = 'S',
                                                                                         `Northern routes (>60 N)` = 'N',
                                                                                         `Individual routes` = 'ind'
@@ -231,7 +233,7 @@ ui <- fluidPage(theme = 'flatly',
                                                                              uiOutput('lanCheckboxAnalyze')),
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "lsk"',
                                                                              uiOutput('lskCheckboxAnalyze')),
-                                                            conditionalPanel(condition = 'input.specrtAnalyze == "fjl104" || input.specrtAnalyze == "fjl142"',
+                                                            conditionalPanel(condition = 'input.specrtAnalyze == "fjl104" || input.specrtAnalyze == "fjl142" || input.specrtAnalyze == "fjl104_inv" || input.specrtAnalyze == "fjl142_inv"',
                                                                              uiOutput('fjlCheckboxAnalyze'))
                                                      )
                                             ),
@@ -350,7 +352,9 @@ server <- function(input, output, session) {
            lan = regStdat$internalSiteId[regStdat$lan%in%input$lanspecrtAnalyze],
            lsk = regStdat$internalSiteId[regStdat$lsk%in%input$lskspecrtAnalyze],
            fjl104 = regStdat$internalSiteId[regStdat$fjall104==input$fjlspecrtAnalyze],
+           fjl104_inv = regStdat$internalSiteId[regStdat$fjall104!=input$fjlspecrtAnalyze],
            fjl142 = regStdat$internalSiteId[regStdat$fjall142==input$fjlspecrtAnalyze],
+           fjl142_inv = regStdat$internalSiteId[regStdat$fjall142!=input$fjlspecrtAnalyze],
            S = regStdat$internalSiteId[regStdat$internalSiteId%in%rcdat$site[rcdat$lat < 60]],
            N = regStdat$internalSiteId[regStdat$internalSiteId%in%rcdat$site[rcdat$lat > 60]],
            ind = input$indspecrtAnalyze)

@@ -431,18 +431,17 @@ getBiotopSitesMongo <- function (projectId) {
 
 		vKarta[nbElt] <- x$adminProperties$internalSiteId
 		vName[nbElt] <- x$name
-		if (exists("x$commonName")) vCommonName[nbElt] <- x$commonName
+		if (!is.null("x$commonName")) vCommonName[nbElt] <- x$commonName
 		else vCommonName[nbElt] <- "-"
-		if (exists("x$adminProperties$lan")) vLan[nbElt] <- x$adminProperties$lan
-		else vLan[nbElt] <- "a"
-		if (exists("x$adminProperties$lsk")) vLsk[nbElt] <- x$adminProperties$lsk
-		else vLsk[nbElt] <- "b"
-		if (exists("x$adminProperties$fjall104")) vF104[nbElt] <- x$adminProperties$fjall104
+		if (!is.null("x$adminProperties$lan")) vLan[nbElt] <- x$adminProperties$lan
+		else vLan[nbElt] <- ""
+		if (!is.null("x$adminProperties$lsk")) vLsk[nbElt] <- x$adminProperties$lsk
+		else vLsk[nbElt] <- ""
+		if (!is.null("x$adminProperties$fjall104")) vF104[nbElt] <- x$adminProperties$fjall104
 		else vF104[nbElt] <- FALSE
-		if (exists("x$adminProperties$fjall142")) vF142[nbElt] <- x$adminProperties$fjall142
+		if (!is.null("x$adminProperties$fjall142")) vF142[nbElt] <- x$adminProperties$fjall142
 		else vF142[nbElt] <- FALSE
 	}
-
 
 #	result <- array(c(vKarta, vCommonName, vLsk, vLan, vF104, vF142), dim=c(nbElt, 6, 1), dimnames=list(c(),c("karta", "namn", "lsk", "lan", "fjall104", "fjall142")))
 	result <- data.frame(vKarta, vCommonName, vLsk, vLan, vF104, vF142)

@@ -4,9 +4,6 @@ source('lib/db_functions.R')
 source('lib/UsefulFunctions.R')
 source('lib/SummarizeFunctions.R')
 
-print(createOrEventDateCriteria(c(2016, 2017, 2018)))
-exit()
-
 # for connection from windows computer, ran locally
 #pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
 

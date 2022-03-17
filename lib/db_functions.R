@@ -41,12 +41,31 @@ getUniquesSpeciesFromScheme <- function (projectActivityId, speciesList) {
 		iterate = TRUE
 	)
 
-	nbElt <- 0
-
+	listSsn <- c()
+	
 	while(!is.null(output <- res$one())){
-		r <- unlist(strsplit(toString(output$speciesUnique), ","))
-		vSn <- data.frame(name=r[c(TRUE)])
+		for (ssn in output$speciesUnique) {
+			# http://www.endmemo.com/r/gsub.php
+
+			# if digits in the end 
+			# remove all the final parenthesis=> removes all the 
+			ssn <- str_replace(ssn, " \\([:alnum:]+\\, [:digit:]+\\)", "")
+			# remove the final word
+			ssn <- str_replace(ssn, " [:alnum:]+\\, [:digit:]+", "")
+
+			listSsn <- c(listSsn, ssn)
+		}
 	}
+
+	listSsn <- unique(listSsn)
+	vSn <- data.frame(name=listSsn)
+
+	#while(!is.null(output <- res$one())){
+	#	ssn <- output$speciesUnique
+
+	#	r <- unlist(strsplit(toString(ssn), ","))
+	#	vSn <- data.frame(name=r[c(TRUE)])
+	#}
 
 	return(vSn)
 }
@@ -59,6 +78,7 @@ getListsFromAla <- function (poolParams) {
 	resD <- dbSendQuery(poolParams, delete)
 	dbClearResult(resD)
 
+	nolsidIndex <- 999
 
 	vArt <- vector()
 	vName <- vector()
@@ -129,7 +149,7 @@ getListsFromAla <- function (poolParams) {
 		    arthela <- ""
 		    englishname <- ""
 		    worldname <- ""
-		    rank <- NULL
+		    rank <- 0
 
 		    while(continue && iKey <= nbKeys){
 
@@ -181,6 +201,26 @@ getListsFromAla <- function (poolParams) {
 		  			")")
 		  	resQ <- dbSendQuery(poolParams, insert)
 		  	dbClearResult(resQ)
+		  }
+		  # NO LSID
+		  else {
+
+		  	insert <- paste0("INSERT INTO species_from_ala (species_id, species_sw_name, species_latin_name, species_en_name, species_worldname, species_rank, species_guid)",
+		  			"VALUES (",
+		  			"'", nolsidIndex, "', ",
+	  				"'[nolsid] ", str_replace(data_json_species[[iS]]$name, "'", "''"), "',  ",
+	  				"'", str_replace(data_json_species[[iS]]$name, "'", "''"), "',  ",
+	  				"'nolsid',  ",
+	  				"'nolsid',  ",
+	  				"0,  ",
+	  				"0  ",
+		  			")")
+		  	resQ <- dbSendQuery(poolParams, insert)
+		  	dbClearResult(resQ)
+
+		  	print(paste("NO LSID for :", data_json_species[[iS]]$name, " got species_id ", nolsidIndex))
+
+		  	nolsidIndex <- nolsidIndex - 1
 		  }
 		  iS <- iS + 1
 		}
@@ -299,7 +339,7 @@ getMatchSpecies <- function (poolParams, speciesSel = "all") {
 	          where to_number(species_id, '000') in %s
 	          order by art", specsel)
 	}
-	
+
 	species <- dbGetQuery(poolParams, querysp)
 
 	nbSp <- nrow(species)
@@ -323,7 +363,7 @@ getMatchSpeciesSN <- function (poolParams, speciesSel) {
           from species_from_ala
           where to_number(species_id, '000') in %s
           order by sn", specsel)
-	
+
 	species <- dbGetQuery(poolParams, querysp)
 
 	speciesFinal <- paste('"', species$sn, '"', sep = "", collapse = ',')
@@ -431,15 +471,15 @@ getBiotopSitesMongo <- function (projectId) {
 
 		vKarta[nbElt] <- x$adminProperties$internalSiteId
 		vName[nbElt] <- x$name
-		if (!is.null("x$commonName")) vCommonName[nbElt] <- x$commonName
+		if (!is.null(x$commonName)) vCommonName[nbElt] <- x$commonName
 		else vCommonName[nbElt] <- "-"
-		if (!is.null("x$adminProperties$lan")) vLan[nbElt] <- x$adminProperties$lan
+		if (!is.null(x$adminProperties$lan)) vLan[nbElt] <- x$adminProperties$lan
 		else vLan[nbElt] <- ""
-		if (!is.null("x$adminProperties$lsk")) vLsk[nbElt] <- x$adminProperties$lsk
+		if (!is.null(x$adminProperties$lsk)) vLsk[nbElt] <- x$adminProperties$lsk
 		else vLsk[nbElt] <- ""
-		if (!is.null("x$adminProperties$fjall104")) vF104[nbElt] <- x$adminProperties$fjall104
+		if (!is.null(x$adminProperties$fjall104)) vF104[nbElt] <- x$adminProperties$fjall104
 		else vF104[nbElt] <- FALSE
-		if (!is.null("x$adminProperties$fjall142")) vF142[nbElt] <- x$adminProperties$fjall142
+		if (!is.null(x$adminProperties$fjall142)) vF142[nbElt] <- x$adminProperties$fjall142
 		else vF142[nbElt] <- FALSE
 	}
 
@@ -479,7 +519,9 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 	else if (projectActivityId == project_activity_id_winter) {
 		checkPeriod <- paste0('"data.period" : {"$in" : [', selectedPeriod,']},')
 	}
-
+	else if (projectActivityId == project_activity_id_iwc) {
+		checkPeriod <- paste0('"data.period" : ', selectedPeriod,',')
+	}
 
 	res <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
@@ -577,6 +619,9 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 		checkPeriod <- paste0('"data.period" : {"$in" : [', selectedPeriod,']},')
 		or <- createOrEventDateCriteria(years, vinter=TRUE)
 		listMonthVinterPreviousYr <- c('01', '02', '03', '04')
+	}
+	else if (projectActivityId == project_activity_id_iwc) {
+		checkPeriod <- paste0('"data.period" : ', selectedPeriod,',')
 	}
 
 
@@ -774,6 +819,9 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 		checkPeriod <- paste0('"data.period" : {"$in" : [', selectedPeriod,']},')
 		or <- createOrEventDateCriteria(years, vinter=TRUE)
 		listMonthVinterPreviousYr <- c('01', '02', '03', '04')
+	}
+	else if (projectActivityId == project_activity_id_iwc) {
+		checkPeriod <- paste0('"data.period" : ', selectedPeriod,',')
 	}
 
 
@@ -998,7 +1046,7 @@ exportSaveData <- function (dataMerge, savedat, filename, tab = "totalstandard")
 		save(dataMerge, file = paste0('extract/mongo_', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.rdata'))
 	}
 
-	print(paste("before return :", Sys.time()))
+	print(paste("after export :", Sys.time()))
 
 	return(dataMerge)
 }

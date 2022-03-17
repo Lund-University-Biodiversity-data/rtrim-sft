@@ -4,7 +4,8 @@ source('lib/db_functions.R')
 source('lib/UsefulFunctions.R')
 source('lib/SummarizeFunctions.R')
 
-
+print(createOrEventDateCriteria(c(2016, 2017, 2018)))
+exit()
 
 # for connection from windows computer, ran locally
 #pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
@@ -109,10 +110,10 @@ ui <- fluidPage(theme = 'flatly',
                            radioButtons('tabsel', label = 'Select monitoring scheme',
                                         choices = list(Standardrutter = 'totalstandard'
                                                        , Sommarpunktrutter = 'totalsommar_pkt',
-                                                       Vinterpunktrutter =  'totalvinter_pkt'#,
+                                                       Vinterpunktrutter =  'totalvinter_pkt',
                                                        #`Sjöfågeltaxering Vår` = 'totalvatmark',
-                                                       #`IWC Januari` = 'total_iwc_januari',
-                                                       #`IWC September` = 'total_iwc_september',
+                                                       `IWC Januari` = 'total_iwc_januari',
+                                                       `IWC September` = 'total_iwc_september'#,
                                                        #`Miscellaneous system` = 'misc_census'
                                                        ),
                                         selected = 'totalstandard', inline = FALSE, width = NULL),
@@ -220,9 +221,7 @@ ui <- fluidPage(theme = 'flatly',
                                                                                         `Counties (län)` = 'lan',
                                                                                         `Province (landskap)` = 'lsk',
                                                                                         `Mountains (Fjällen) n=104` = 'fjl104',
-                                                                                        `EJ Mountains (Fjällen) n=104` = 'fjl104_inv',
                                                                                         `Mountains (Fjällen) n=142` = 'fjl142',
-                                                                                        `EJ Mountains (Fjällen) n=142` = 'fjl142_inv',
                                                                                         `Southern routes (<60 N)` = 'S',
                                                                                         `Northern routes (>60 N)` = 'N',
                                                                                         `Individual routes` = 'ind'
@@ -322,7 +321,8 @@ server <- function(input, output, session) {
     switch(input$specsp,
            all = c(1:699),
            mammals = c(700:799),
-           FBI = c(75, 155, 157, 163, 189, 206, 219, 226, 229, 230, 235, 249, 251, 258),
+           #FBI = c(75, 155, 157, 163, 189, 206, 219, 226, 229, 230, 235, 249, 251, 258),
+           FBI = c(57, 75, 155, 157, 163, 189, 206, 219, 226, 229, 230, 235, 249, 251, 258),
            eo13 = c(75, 86, 155, 157, 188, 189, 206, 226, 229, 230, 235, 249, 258),
            iwcjan = c(1, 2, 3, 4, 5, 7, 8, 9, 12, 13, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 35, 36, 73),
            ind = as.integer(input$indspecsp)
@@ -352,9 +352,7 @@ server <- function(input, output, session) {
            lan = regStdat$internalSiteId[regStdat$lan%in%input$lanspecrtAnalyze],
            lsk = regStdat$internalSiteId[regStdat$lsk%in%input$lskspecrtAnalyze],
            fjl104 = regStdat$internalSiteId[regStdat$fjall104==input$fjlspecrtAnalyze],
-           fjl104_inv = regStdat$internalSiteId[regStdat$fjall104!=input$fjlspecrtAnalyze],
            fjl142 = regStdat$internalSiteId[regStdat$fjall142==input$fjlspecrtAnalyze],
-           fjl142_inv = regStdat$internalSiteId[regStdat$fjall142!=input$fjlspecrtAnalyze],
            S = regStdat$internalSiteId[regStdat$internalSiteId%in%rcdat$site[rcdat$lat < 60]],
            N = regStdat$internalSiteId[regStdat$internalSiteId%in%rcdat$site[rcdat$lat > 60]],
            ind = input$indspecrtAnalyze)
@@ -401,6 +399,17 @@ server <- function(input, output, session) {
           linepoint <- "point" 
         }
       }
+      else if (input$tabsel == "total_iwc_januari") {
+        projectId <- project_id_iwc
+        projectActivityId <- project_activity_id_iwc
+        selectedPeriod <- '"Januari"'
+      }
+      else if (input$tabsel == "total_iwc_september") {
+        projectId <- project_id_iwc
+        projectActivityId <- project_activity_id_iwc
+
+        selectedPeriod <- '"September"'
+      }
       else if (input$tabsel == "totalsommar_pkt") {
         projectId <- project_id_punkt
         projectActivityId <- project_activity_id_summer
@@ -412,6 +421,7 @@ server <- function(input, output, session) {
         selectedPeriod <- paste0('"', paste0(input$specper, collapse = '","'), '"')
 
       }
+
 
       rcdat <<- getSitesMongo(projectId)
 
@@ -555,10 +565,19 @@ server <- function(input, output, session) {
       projectId <- project_id_punkt
       projectActivityId <- project_activity_id_winter
     } 
+    else if (input$tabsel == "total_iwc_januari" || input$tabsel == "total_iwc_september") {
+      projectId <- project_id_iwc
+      projectActivityId <- project_activity_id_iwc
+    } 
+    else if (input$tabsel == "totalvinter_pkt") {
+      projectId <- project_id_punkt
+      projectActivityId <- project_activity_id_iwc
+    } 
 
     specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
 
     nbSp <- nrow(specsSN)
+
     vSpecies <- vector()
     for (iSp  in 1:nbSp) {
       vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]

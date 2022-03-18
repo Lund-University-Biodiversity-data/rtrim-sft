@@ -78,8 +78,6 @@ getListsFromAla <- function (poolParams) {
 	resD <- dbSendQuery(poolParams, delete)
 	dbClearResult(resD)
 
-	nolsidIndex <- 999
-
 	vArt <- vector()
 	vName <- vector()
 	vArthela <- vector()
@@ -110,9 +108,10 @@ getListsFromAla <- function (poolParams) {
 		#	print("OWLS LIST")
 		#}
 
-		print(paste("URL to scan:",paste0(species_list_url, animal_list)))
+		dataurl <- getURL(paste0(species_list_url, animal_list, species_list_KVP_details))
 
-		dataurl <- getURL(paste0(species_list_url, animal_list))
+		print(paste("URL to scan:",dataurl))
+
 		data_json_species = fromJSON(dataurl)
 		#data_json_species = fromJSON(file=paste0(species_list_url, bird_list_id))
 		print(paste("Elements found :",length(data_json_species)))
@@ -121,27 +120,16 @@ getListsFromAla <- function (poolParams) {
 
 		while(iS <= nbElt){
 
-		  species<-data.frame()
-		  #print(data_json_species[[iS]]$lsid)
-		  if (!is.null(data_json_species[[iS]]$lsid)) {
+			species<-data.frame()
 
-		    #print(paste0(iS, "url : ",species_list_details_url, data_json_species[[iS]]$lsid))
+		  	if (!is.null(data_json_species[[iS]]$lsid)) {
+		  		lsid <- data_json_species[[iS]]$lsid
+		  	}
+		  	else {
+		  		lsid <- 0
+		  	}
 
-		    data_json_species_details = fromJSON(file=paste0(species_list_details_url, data_json_species[[iS]]$lsid))
-
-		    iAL <- 1
-		    if (data_json_species_details[[1]]$dataResourceUid == animal_list) {
-		    	iAL <- 1
-		    }
-		    else if (data_json_species_details[[2]]$dataResourceUid == animal_list) {
-		    	iAL <- 2
-		    }
-		    else if (data_json_species_details[[3]]$dataResourceUid == animal_list) {
-		    	iAL <- 3
-		    }
-
-
-		    nbKeys <- length(data_json_species_details[[iAL]]$kvpValues)
+		    nbKeys <- length(data_json_species[[iS]]$kvpValues)
 
 		    iKey <- 1
 		    continue <- TRUE
@@ -155,24 +143,24 @@ getListsFromAla <- function (poolParams) {
 
 
 
-		      if (data_json_species_details[[iAL]]$kvpValues[[iKey]]$key == "art") {
-		        art <- data_json_species_details[[iAL]]$kvpValues[[iKey]]$value
+		      if (data_json_species[[iS]]$kvpValues[[iKey]]$key == "art") {
+		        art <- data_json_species[[iS]]$kvpValues[[iKey]]$value
 		      }
 
-		      if (data_json_species_details[[iAL]]$kvpValues[[iKey]]$key == "arthela") {
-		        arthela <- data_json_species_details[[iAL]]$kvpValues[[iKey]]$value
+		      if (data_json_species[[iS]]$kvpValues[[iKey]]$key == "arthela") {
+		        arthela <- data_json_species[[iS]]$kvpValues[[iKey]]$value
 		      }
 
-		      if (data_json_species_details[[iAL]]$kvpValues[[iKey]]$key == "englishname") {
-		        englishname <-data_json_species_details[[iAL]]$kvpValues[[iKey]]$value
+		      if (data_json_species[[iS]]$kvpValues[[iKey]]$key == "englishname") {
+		        englishname <-data_json_species[[iS]]$kvpValues[[iKey]]$value
 		      }
 
-		      if (data_json_species_details[[iAL]]$kvpValues[[iKey]]$key == "worldname") {
-		        worldname <- data_json_species_details[[iAL]]$kvpValues[[iKey]]$value
+		      if (data_json_species[[iS]]$kvpValues[[iKey]]$key == "worldname") {
+		        worldname <- data_json_species[[iS]]$kvpValues[[iKey]]$value
 		      }
 
-		      if (data_json_species_details[[iAL]]$kvpValues[[iKey]]$key == "rank") {
-		        rank <- data_json_species_details[[iAL]]$kvpValues[[iKey]]$value
+		      if (data_json_species[[iS]]$kvpValues[[iKey]]$key == "rank") {
+		        rank <- data_json_species[[iS]]$kvpValues[[iKey]]$value
 		      }
 
 		      iKey <- iKey+1
@@ -185,10 +173,9 @@ getListsFromAla <- function (poolParams) {
 		    vEnglishname[iS2] <- englishname
 		    vWorldname[iS2] <- worldname
 		    vRank[iS2] <- rank
-		    vGuid[iS2] <- data_json_species[[iS]]$lsid
+		    vGuid[iS2] <- lsid
 		    #print(paste("art :", art))
 
-	#('art', 'latin', 'arthela', 'englishname', 'worldname', 'rank', 'guid')
 		  	insert <- paste0("INSERT INTO species_from_ala (species_id, species_sw_name, species_latin_name, species_en_name, species_worldname, species_rank, species_guid)",
 		  			"VALUES (",
 		  			"'", str_pad(art, 3, side="left", pad="0"), "', ",
@@ -197,32 +184,12 @@ getListsFromAla <- function (poolParams) {
 	  				"'", str_replace(englishname, "'", "''"), "',  ",
 	  				"'", str_replace(worldname, "'", "''"), "',  ",
 	  				"", rank, ",  ",
-	  				"", data_json_species[[iS]]$lsid, "  ",
-		  			")")
-		  	resQ <- dbSendQuery(poolParams, insert)
-		  	dbClearResult(resQ)
-		  }
-		  # NO LSID
-		  else {
-
-		  	insert <- paste0("INSERT INTO species_from_ala (species_id, species_sw_name, species_latin_name, species_en_name, species_worldname, species_rank, species_guid)",
-		  			"VALUES (",
-		  			"'", nolsidIndex, "', ",
-	  				"'[nolsid] ", str_replace(data_json_species[[iS]]$name, "'", "''"), "',  ",
-	  				"'", str_replace(data_json_species[[iS]]$name, "'", "''"), "',  ",
-	  				"'nolsid',  ",
-	  				"'nolsid',  ",
-	  				"0,  ",
-	  				"0  ",
+	  				"", lsid, "  ",
 		  			")")
 		  	resQ <- dbSendQuery(poolParams, insert)
 		  	dbClearResult(resQ)
 
-		  	print(paste("NO LSID for :", data_json_species[[iS]]$name, " got species_id ", nolsidIndex))
-
-		  	nolsidIndex <- nolsidIndex - 1
-		  }
-		  iS <- iS + 1
+		  	iS <- iS + 1
 		}
 
 	}

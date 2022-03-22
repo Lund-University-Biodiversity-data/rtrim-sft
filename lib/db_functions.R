@@ -589,6 +589,13 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 	}
 	else if (projectActivityId == project_activity_id_iwc) {
 		checkPeriod <- paste0('"data.period" : ', selectedPeriod,',')
+		# important double quotes !!
+		if (selectedPeriod == '"Januari"') {
+			or <- createOrEventDateCriteria(years, iwcjanuari=TRUE)
+		}
+		else if (selectedPeriod == '"September"') {
+			or <- createOrEventDateCriteria(years, iwcseptember=TRUE)
+		}
 	}
 
 
@@ -632,11 +639,24 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 		#vKarta[nbElt] <- toString(output$data$location)
 		vKartaMatch[nbElt] <- sites[[toString(output$data$location)]]
 
+		# for the winter protocols, some months have to be lined to the year before
 		if (projectActivityId == project_activity_id_winter) {
 			month <- substr(output$data$surveyDate, 6 , 7)
 			if (month %in% listMonthVinterPreviousYr) {
 				yr <- substr(output$data$surveyDate, 1 , 4)
 				vYear[nbElt] <- paste0(strtoi(yr)-1)
+			}
+
+			else {
+				vYear[nbElt] <- substr(output$data$surveyDate, 1 , 4)
+			}
+		}
+		# for iwcjanuari, december belongs to the year after
+		else if (projectActivityId == project_activity_id_iwc) {
+			month <- substr(output$data$surveyDate, 6 , 7)
+			if (month == "12") {
+				yr <- substr(output$data$surveyDate, 1 , 4)
+				vYear[nbElt] <- paste0(strtoi(yr)+1)
 			}
 
 			else {
@@ -732,7 +752,7 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 }
 
 
-createOrEventDateCriteria <- function (years, vinter= FALSE) {
+createOrEventDateCriteria <- function (years, vinter= FALSE, iwcjanuari=FALSE, iwcseptember=FALSE) {
 
 	# for the winter routes, the winter starts on september of year Y, until april of year Y+1 !
 	if (vinter) {
@@ -753,7 +773,33 @@ createOrEventDateCriteria <- function (years, vinter= FALSE) {
 
 
 	}
+	# for the iwcjanuari routes, januari could be december before, until mars  !
+	else if (iwcjanuari) {
+		or <- '"$or" : [ '
+		for (iYear in years[1]:tail(years, n=1)){ 
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',(iYear-1),'-12", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-01", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-02", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-03", "$options" : "i" } }, ', sep="")
+		}
 
+		# repeat the same at the end of the OR to deal with the comma
+		or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-01", "$options" : "i" } }] ', sep="")
+
+	}
+	# for the iwcseptember routes, september could be juni to oktober  !
+	else if (iwcseptember) {
+		or <- '"$or" : [ '
+		for (iYear in years[1]:tail(years, n=1)){ 
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-06", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-09", "$options" : "i" } }, ', sep="")
+			or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-10", "$options" : "i" } }, ', sep="")
+		}
+
+		# repeat the same at the end of the OR to deal with the comma
+		or <- paste (or, '{"data.surveyDate": { "$regex" : "',iYear,'-09", "$options" : "i" } }] ', sep="")
+
+	}
 	else {
 		or <- '"$or" : [ '
 		for (iYear in years[1]:tail(years, n=1)){ 
@@ -789,6 +835,14 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 	}
 	else if (projectActivityId == project_activity_id_iwc) {
 		checkPeriod <- paste0('"data.period" : ', selectedPeriod,',')
+		# important double quotes !!
+		if (selectedPeriod == '"Januari"') {
+			or <- createOrEventDateCriteria(years, iwcjanuari=TRUE)
+		}
+		else if (selectedPeriod == '"September"') {
+			or <- createOrEventDateCriteria(years, iwcseptember=TRUE)
+		}
+
 	}
 
 
@@ -874,20 +928,18 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 
 
 		if (projectActivityId == project_activity_id_std) {
+
 			if (linepoint == "point") {
-				vCount[nbElt] <- output$pointCount
+				vCount[nbElt] <- as.integer(output$pointCount)
 			}
 			else {
-				vCount[nbElt] <- output$lineCount
+				vCount[nbElt] <- as.integer(output$lineCount)
 			}
 
 		}
 		else {
-			vCount[nbElt] <- output$individualCount
+			vCount[nbElt] <- as.integer(output$individualCount)
 		}
-
-
-		
 
 
 	}
@@ -896,9 +948,10 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 	colnames(result) <- c("site", "species", "time", "count")
 
 	#resRemoveDuplicate=unique(result)
+	# aggregate by getting the maximum value in case of doublon
+	# (works as well for iwc when boat/land can be done the same year)
 	resAggregate <- aggregate(result$count, by=list(site=result$site, species=result$species, time=result$time), FUN=max)
 	colnames(resAggregate) <- c("site", "species", "time", "count")
-
 
 
 

@@ -367,7 +367,7 @@ server <- function(input, output, session) {
   
   data <- eventReactive(input$sendquery,{
 
-    correctionsArt <- data.frame(TRUE, TRUE, FALSE)
+    correctionsArt <- data.frame(FALSE, FALSE, FALSE)
     colnames(correctionsArt) <- c("s043", "s242", "s248")
 
     if ("fixArt43"%in%input$specifCorrections) {

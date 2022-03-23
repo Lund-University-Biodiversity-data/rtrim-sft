@@ -469,6 +469,41 @@ getIWCData <- function (pool) {
 	return(regIWCdat)
 }
 
+getIWCDataMongo <- function (projectId) {
+
+	mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
+
+	res <- mongoConnection$iterate(
+	  query = sprintf('{"status":"active", "adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+	  fields = '{"adminProperties.internalSiteId":1, "commonName":1, "name":1, "adminProperties.ki":1, "adminProperties.ev":1}'
+	)
+
+	nbElt <- 0
+	vSite <- vector()
+	vName <- vector()
+	vCommonName <- vector()
+	vKi <- vector()
+	vEv <- vector()
+
+	while(!is.null(x <- res$one())){
+		nbElt <- nbElt +1
+
+		vSite[nbElt] <- x$adminProperties$internalSiteId
+		vName[nbElt] <- x$name
+		if (!is.null(x$commonName)) vCommonName[nbElt] <- x$commonName
+		else vCommonName[nbElt] <- "-"
+		if (!is.null(x$adminProperties$ki)) vKi[nbElt] <- x$adminProperties$ki
+		else vKi[nbElt] <- ""
+		if (!is.null(x$adminProperties$ev)) vEv[nbElt] <- x$adminProperties$ev
+		else vEv[nbElt] <- ""
+	}
+
+	result <- data.frame(vSite, vName, vKi, vEv)
+	colnames(result) <- c("internalSiteId", "namn", "ki", "ev")
+
+	return(result)
+}
+
 
 getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod) {
 

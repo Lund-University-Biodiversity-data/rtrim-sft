@@ -12,7 +12,7 @@ poolParams<-dbConnect(RPostgres::Postgres(), dbname = postgres_database_paramete
 
 #spdat2 <- getListsFromAla(poolParams)
 #spdat <- getSpeciesData(pool)
-#print(spdat)
+
 
 spdat <- getSpeciesDataParams(poolParams)
 #spdat <<- getSpeciesDataMongo()
@@ -33,6 +33,8 @@ onStop(function() {
   poolClose(poolParams)
 })
 
+
+print(paste("Ready ", Sys.time()))
 
 ui <- fluidPage(theme = 'flatly',
                 tags$head(
@@ -109,8 +111,8 @@ ui <- fluidPage(theme = 'flatly',
                                                        , Sommarpunktrutter = 'totalsommar_pkt',
                                                        Vinterpunktrutter =  'totalvinter_pkt',
                                                        #`Sjöfågeltaxering Vår` = 'totalvatmark',
-                                                       `IWC Januari` = 'total_iwc_januari',
-                                                       `IWC September` = 'total_iwc_september'#,
+                                                       `IWC Januari` = 'total_iwc_januari'#,
+                                                       #`IWC September` = 'total_iwc_september',
                                                        #`Miscellaneous system` = 'misc_census'
                                                        ),
                                         selected = 'totalstandard', inline = FALSE, width = NULL),
@@ -242,8 +244,10 @@ ui <- fluidPage(theme = 'flatly',
                                             fluidRow(column(4,
                                                             radioButtons('specrtIWCAnalyze', label = 'Select sites to include',
                                                                          choices = list(`All availble sites` = 'all',
-                                                                                        `Eastern coastal` = 'east',
-                                                                                        `Western coastal` = 'west'),
+                                                                                        `Coasts only (ki=K)` = 'coast',
+                                                                                        `Inland only (ki=I)` = 'inland',
+                                                                                        `Eastern coastal (ev=E & ki=K)` = 'east',
+                                                                                        `Western coastal (ev=V & ki=K)` = 'west'),
                                                                          selected = 'all'))
                                             )
                            ),
@@ -356,11 +360,14 @@ server <- function(input, output, session) {
   })
   
 
-  regIWCdat <<- getIWCData(pool)
+  #regIWCdat <<- getIWCData(pool)
+  regIWCdat <<- getIWCDataMongo(project_id_iwc)
 
   specrouteIWCAnalyze <- reactive({
     switch(input$specrtIWCAnalyze,
            all = regIWCdat$site,
+           coast = regIWCdat$site[regIWCdat$ki=='K'],
+           inland = regIWCdat$site[regIWCdat$ki=='I'],
            east = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='E'],
            west = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='V'])
   })
@@ -460,6 +467,9 @@ server <- function(input, output, session) {
   })
   
   resultout <- eventReactive(input$sendanalysis, {
+
+    print(paste("start analysis ", Sys.time()))
+
     if (input$addNS){
       dat <- AddNSspecies(data = data(), rangedata = rangedat, coorddata = rcdat)
     } else {
@@ -474,16 +484,16 @@ server <- function(input, output, session) {
     } else {
       rix <- !logical(nrow(dat))
     }
-    dat <- subset(dat, tix & rix)
+    dat <<- subset(dat, tix & rix)
     dat2 <<- dat
     spartA <<- specartAnalyze()
-    spAix <- specartAnalyze()%in%as.integer(unique(dat$species))
-    styr <- if(input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
+    spAix <<- specartAnalyze()%in%as.integer(unique(dat$species))
+    styr <<- if(input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
                 NULL
               } else {
                 startyr[startyr$Delprogram==input$tabsel, c('Art', 'StartYear')]
               }
-    
+
     RunTRIMmodel(dat = dat, modeltype = as.integer(input$modeltype), sp_to_run = specartAnalyze()[spAix],
                  odisp = 'od'%in%input$trimset, sercor = 'sc'%in%input$trimset,
                  autodel = 'ad'%in%input$trimset,  speciesdat = spdat,

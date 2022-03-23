@@ -339,6 +339,10 @@ RunTRIMmodel <- function(dat = NULL, modeltype = NULL, sp_to_run = NULL,
                          speciesdat = NULL, odisp = NULL, sercor = NULL,
                          changepoints = 'all', autodel = NULL, startyr=NULL,
                          tabell=NULL, saveresult = NULL, filename = NULL){
+
+  print(paste("run RTRIM model start ", Sys.time()))
+
+
   ## Fix data to satisfy rtrim ##
   if (any(unique(na.omit(dat$count))==-1)) {
     dat$count[dat$count==-1] <- NA
@@ -351,7 +355,8 @@ RunTRIMmodel <- function(dat = NULL, modeltype = NULL, sp_to_run = NULL,
   sp_to_run_names <- speciesdat$arthela[match(sp_to_run, as.integer(speciesdat$art))]
   
   ## Prepare output-object ##
-  output <- vector(mode = 'list', length = length(sp_to_run))
+  output <<- vector(mode = 'list', length = length(sp_to_run))
+
   names(output) <- paste0('Art_', sp_to_run)
 
   ## Fix model inputs

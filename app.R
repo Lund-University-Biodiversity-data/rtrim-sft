@@ -484,11 +484,11 @@ server <- function(input, output, session) {
     } else {
       rix <- !logical(nrow(dat))
     }
-    dat <<- subset(dat, tix & rix)
+    dat <- subset(dat, tix & rix)
     dat2 <<- dat
     spartA <<- specartAnalyze()
-    spAix <<- specartAnalyze()%in%as.integer(unique(dat$species))
-    styr <<- if(input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
+    spAix <- specartAnalyze()%in%as.integer(unique(dat$species))
+    styr <- if(input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
                 NULL
               } else {
                 startyr[startyr$Delprogram==input$tabsel, c('Art', 'StartYear')]

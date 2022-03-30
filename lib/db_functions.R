@@ -499,7 +499,7 @@ getIWCDataMongo <- function (projectId) {
 	}
 
 	result <- data.frame(vSite, vName, vKi, vEv)
-	colnames(result) <- c("internalSiteId", "namn", "ki", "ev")
+	colnames(result) <- c("site", "lokalnamn", "ki", "ev")
 
 	return(result)
 }

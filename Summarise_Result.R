@@ -1,5 +1,3 @@
-
-
 #################################################
 #### Code to make xls-files for reports etc. ####
 #################################################
@@ -8,8 +6,10 @@
 #### First you should set some parameters ####
 #################################################
 
+# OBS! If you have tricky species, like BEFIN in winter, you should run 'Code for specific tasks.R' first.
+
 # What base year do you want?
-base <- 2002
+base <- 2012
 
 # Do you want to use shorter time periods for some species?
 # (i.e. use the information in "SpeciesWithShorterTimePeriods.xls")
@@ -17,29 +17,46 @@ base <- 2002
 useShorterPeriods <- TRUE
 
 # What is the "general" name of the output-files (i.e. what you entered as filename för the rdata-file in the app)
-filenames <- 'trimOutput_NordicBorealNon-Pass'
-#filenames <- 'trimOutput' 
+# Hade problem en gång, med ett "+" i filnamnet. Bör nog undvikas att använda "+"
+# Det första alternativet nedan fungerade för både Trippel och Komb. Har du redan kört alla delprogrammen under olika "general" namn, 
+# så gör en kopia av vardera och döp om vardera till, t.ex. "trimOutput_totalstandard_2022-02-01_14_04_18". 
+
+# OBS: Innan nästa steg måste du ta bort sekund-decimalerna på .rdata-filen !!!!
+
+filenames <- 'trimOutput_VinPKT3_2012_2022'
+#filenames <- 'trimOutput'
+#filenames <- '_Natt20102022_harar_räv_Sverige'  
+#filenames <- 'Orebro20112020' 
 
 # What are the name(s) of the "monitoring systems" (tables in SFT) that you want summaries for. What you leave within parenthesis
 # are the systems you want to work with. Can be 1 or several systems. Can be 'misc_census'. 
-tables <- c('misc_census')
+#tables <- c('totalsommar_pkt')
+tables <- c('totalvinter_pkt')
+#tables <- c('misc_census')
+#tables <- c('totalstandard')
+#tables <- c('totalvatmark')
 #tables <- c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt')
+#tables <- c('totalstandard', 'totalsommar_pkt')
+#tables <- c('total_iwc_januari')
 
 # What short (one?) letter kombination should identify the monitoring system(s) in the Index and Convergence columns? Should be
 # the same number of factors as in the previous code line. You can leave it empty by ''
-shortcolumn <- c('MC')
-# shortcolumn <- c('', 'S', 'V')
-# shortcolumn <- c('T', 'S', 'V')
+shortcolumn <- c('V')
+#shortcolumn <- c('T', 'S', 'V')
+#shortcolumn <- c('T', 'S')
 
 # What short (one?) letter kombination should identify the monitoring system(s) in tabs? Should also be the same number of factors
 # as in the previous code line. You can leave it empty by ''
-shorttab <- c('MC')
-#shorttab <- c('ST', 'S', 'V')
+shorttab <- c('V')
+#shorttab <- c('T', 'S')
+#shorttab <- c('T', 'S', 'V')
 
 # Which combinations of monitoring systems do you want to produce (trippel, komb etc)?
 # Make a list of vectors specifying the indices (in the desired order) of the systems you want to combine.
 # The numbers relate to the order of systems assigned above under "tables" 
-#combinations <- list(c(3, 2, 1), c(2, 1))
+
+#combinations <- list(c(3, 2, 1), c(2, 1))  # Denna skapar både Trippel och Komb
+#combinations <- list(c(2, 1))
 combinations <- NULL
 
 # Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter 
@@ -51,7 +68,7 @@ homepage <- TRUE
 
 # Do you want swedish- (SE), english- (EN),  or world- (WD) names for species (as specified in EUROLIST)?
 # NOTE: Worldnames are not available för all species in EUROLIST
-lang <- 'SE'
+lang <- 'SE' 
 # lang <- 'EN'
 # lang <- 'WD'
 
@@ -72,10 +89,10 @@ library(writexl)
 source('UsefulFunctions.R') # A bunch of useful functions
 
 ## Get Eurolist data
-pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
+pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64') #, encoding = 'windows-1252')
 querysp <- "select art, arthela, latin, englishname, worldname, rank
               from eurolist
-              where art<'700'
+              where art<'800'
               order by art"
 spdat <- dbGetQuery(pool, querysp)
 poolClose(pool)
@@ -158,6 +175,23 @@ for (us in usps_num){
 
 MakeXlsFile(resultout, colnames = shortcolumn, tabnames = shorttab, specieslist = sps_char, specieslanguage = lang,
             combinations = combinations, single = single, homepage = homepage)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################################################################################
+
 
 
 

@@ -5,11 +5,7 @@ library(pool)
 library(shinycssloaders)
 library(rtrim)
 source('UsefulFunctions.R')
-pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
-
-#library(RPostgres)
-#pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft', user='postgres')
-
+pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64') #, encoding = 'windows-1252') Notera att denna skiljer sig från Martins version
 querysp <- "select art, arthela, latin, englishname, worldname, rank
               from eurolist
               order by art"
@@ -95,12 +91,11 @@ ui <- fluidPage(theme = 'flatly',
                             # }
                             "
                     )
-                  ),
-                  tags$title("Åkes superTRIMprogram")
+                  )
                 ),
                 titlePanel(title = div(img(style = 'display: inline-block;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                                        p(style = 'display: inline-block; margin: auto; width: 60%; text-align: center; font-size: 1.5em;',
-                                         'Åkes superTRIMprogram - Original version from Martin'))),
+                                         'Åkes superTRIMprogram'))),
                 # titlePanel(title = div(style = 'margin: auto; padding-bottom: 50px', p(style = 'display: block; text-align: center; font-size: 1.5em;',
                 #                          img(style = 'float: left; margin-bottom: 100px;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                 #                          'Åkes superTRIMprogram'))),
@@ -493,7 +488,7 @@ server <- function(input, output, session) {
       startyr[startyr$Delprogram==input$tabsel, c('Art', 'StartYear')]
     }
     byr <- ifelse(isolate(input$selyrsAnalyze[1])>1998, isolate(input$selyrsAnalyze[1]), 1998) 
-    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0('extract/',input$filenamepdf, '.pdf'))
+    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0(input$filenamepdf, '.pdf'))
   }, height = function() {
     nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
     px <- session$clientData$output_plot_width*nr/3

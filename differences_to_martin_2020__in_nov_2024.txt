@@ -1,0 +1,306 @@
+diff --git a/app.R b/app.R
+index 65dae3b..2c0022c 100644
+--- a/app.R
++++ b/app.R
+@@ -5,11 +5,7 @@ library(pool)
+ library(shinycssloaders)
+ library(rtrim)
+ source('UsefulFunctions.R')
+-pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
+-
+-#library(RPostgres)
+-#pool<-dbConnect(RPostgres::Postgres(), dbname = 'sft', user='postgres')
+-
++pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64') #, encoding = 'windows-1252') Notera att denna skiljer sig från Martins version
+ querysp <- "select art, arthela, latin, englishname, worldname, rank
+               from eurolist
+               order by art"
+@@ -95,12 +91,11 @@ ui <- fluidPage(theme = 'flatly',
+                             # }
+                             "
+                     )
+-                  ),
+-                  tags$title("Åkes superTRIMprogram")
++                  )
+                 ),
+                 titlePanel(title = div(img(style = 'display: inline-block;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
+                                        p(style = 'display: inline-block; margin: auto; width: 60%; text-align: center; font-size: 1.5em;',
+-                                         'Åkes superTRIMprogram - Original version from Martin'))),
++                                         'Åkes superTRIMprogram'))),
+                 # titlePanel(title = div(style = 'margin: auto; padding-bottom: 50px', p(style = 'display: block; text-align: center; font-size: 1.5em;',
+                 #                          img(style = 'float: left; margin-bottom: 100px;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
+                 #                          'Åkes superTRIMprogram'))),
+@@ -493,7 +488,7 @@ server <- function(input, output, session) {
+       startyr[startyr$Delprogram==input$tabsel, c('Art', 'StartYear')]
+     }
+     byr <- ifelse(isolate(input$selyrsAnalyze[1])>1998, isolate(input$selyrsAnalyze[1]), 1998)
+-    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0('extract/',input$filenamepdf, '.pdf'))
++    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0(input$filenamepdf, '.pdf'))
+   }, height = function() {
+     nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
+     px <- session$clientData$output_plot_width*nr/3
+
+
+
+
+
+diff --git a/Summarise_Result.R b/Summarise_Result.R
+index bb65f72..ba62d86 100644
+--- a/Summarise_Result.R
++++ b/Summarise_Result.R
+@@ -1,5 +1,3 @@
+-
+-
+ #################################################
+ #### Code to make xls-files for reports etc. ####
+ #################################################
+@@ -8,8 +6,10 @@
+ #### First you should set some parameters ####
+ #################################################
+
++# OBS! If you have tricky species, like BEFIN in winter, you should run 'Code for specific tasks.R' first.
++
+ # What base year do you want?
+-base <- 2002
++base <- 2012
+
+ # Do you want to use shorter time periods for some species?
+ # (i.e. use the information in "SpeciesWithShorterTimePeriods.xls")
+@@ -17,29 +17,46 @@ base <- 2002
+ useShorterPeriods <- TRUE
+
+ # What is the "general" name of the output-files (i.e. what you entered as filename för the rdata-file in the app)
+-filenames <- 'trimOutput_NordicBorealNon-Pass'
+-#filenames <- 'trimOutput'
++# Hade problem en gång, med ett "+" i filnamnet. Bör nog undvikas att använda "+"
++# Det första alternativet nedan fungerade för både Trippel och Komb. Har du redan kört alla delprogrammen under olika "general" namn,
++# så gör en kopia av vardera och döp om vardera till, t.ex. "trimOutput_totalstandard_2022-02-01_14_04_18".
++
++# OBS: Innan nästa steg måste du ta bort sekund-decimalerna på .rdata-filen !!!!
++
++filenames <- 'trimOutput_VinPKT3_2012_2022'
++#filenames <- 'trimOutput'
++#filenames <- '_Natt20102022_harar_räv_Sverige'
++#filenames <- 'Orebro20112020'
+
+ # What are the name(s) of the "monitoring systems" (tables in SFT) that you want summaries for. What you leave within parenthesis
+ # are the systems you want to work with. Can be 1 or several systems. Can be 'misc_census'.
+-tables <- c('misc_census')
++#tables <- c('totalsommar_pkt')
++tables <- c('totalvinter_pkt')
++#tables <- c('misc_census')
++#tables <- c('totalstandard')
++#tables <- c('totalvatmark')
+ #tables <- c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt')
++#tables <- c('totalstandard', 'totalsommar_pkt')
++#tables <- c('total_iwc_januari')
+
+ # What short (one?) letter kombination should identify the monitoring system(s) in the Index and Convergence columns? Should be
+ # the same number of factors as in the previous code line. You can leave it empty by ''
+-shortcolumn <- c('MC')
+-# shortcolumn <- c('', 'S', 'V')
+-# shortcolumn <- c('T', 'S', 'V')
++shortcolumn <- c('V')
++#shortcolumn <- c('T', 'S', 'V')
++#shortcolumn <- c('T', 'S')
+
+ # What short (one?) letter kombination should identify the monitoring system(s) in tabs? Should also be the same number of factors
+ # as in the previous code line. You can leave it empty by ''
+-shorttab <- c('MC')
+-#shorttab <- c('ST', 'S', 'V')
++shorttab <- c('V')
++#shorttab <- c('T', 'S')
++#shorttab <- c('T', 'S', 'V')
+
+ # Which combinations of monitoring systems do you want to produce (trippel, komb etc)?
+ # Make a list of vectors specifying the indices (in the desired order) of the systems you want to combine.
+ # The numbers relate to the order of systems assigned above under "tables"
+-#combinations <- list(c(3, 2, 1), c(2, 1))
++
++#combinations <- list(c(3, 2, 1), c(2, 1))  # Denna skapar både Trippel och Komb
++#combinations <- list(c(2, 1))
+ combinations <- NULL
+
+ # Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter
+@@ -51,7 +68,7 @@ homepage <- TRUE
+
+ # Do you want swedish- (SE), english- (EN),  or world- (WD) names for species (as specified in EUROLIST)?
+ # NOTE: Worldnames are not available för all species in EUROLIST
+-lang <- 'SE'
++lang <- 'SE'
+ # lang <- 'EN'
+ # lang <- 'WD'
+
+@@ -72,10 +89,10 @@ library(writexl)
+ source('UsefulFunctions.R') # A bunch of useful functions
+
+ ## Get Eurolist data
+-pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
++pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64') #, encoding = 'windows-1252')
+ querysp <- "select art, arthela, latin, englishname, worldname, rank
+               from eurolist
+-              where art<'700'
++              where art<'800'
+               order by art"
+ spdat <- dbGetQuery(pool, querysp)
+ poolClose(pool)
+@@ -161,6 +178,23 @@ MakeXlsFile(resultout, colnames = shortcolumn, tabnames = shorttab, specieslist
+
+
+
++
++
++
++
++
++
++
++
++
++
++
++
++#######################################################################################################################
++
++
++
++
+ #### Reproduce old TRIM output ####
+ ## Code to extract the same output information from a "trim"-object (produced by rtrim) as
+ ## is produced by old TRIM (example 151.out) ####
+
+
+
+
+
+diff --git a/UsefulFunctions.R b/UsefulFunctions.R
+index bf01781..c0a1a3a 100644
+--- a/UsefulFunctions.R
++++ b/UsefulFunctions.R
+@@ -308,15 +308,15 @@ DoQuery <- function (pool=NULL, tab=NULL, spec=NULL, specper=NULL, selyrs=NULL,
+     dat <<- dat
+   }
+   if (2%in%savedat){
+-    write.csv(dat, file = paste0('extract/', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.csv'),
++    write.csv(dat, file = paste0(filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.csv'),
+               row.names = FALSE)
+   }
+   if (3%in%savedat){
+-    write.csv2(dat, file = paste0('extract/', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.csv'),
++    write.csv2(dat, file = paste0(filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.csv'),
+               row.names = FALSE)
+   }
+   if (4%in%savedat){
+-    save(dat, file = paste0('extract/', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.rdata'))
++    save(dat, file = paste0(filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.rdata'))
+   }
+   return(dat)
+ }
+@@ -371,7 +371,7 @@ RunTRIMmodel <- function(dat = NULL, modeltype = NULL, sp_to_run = NULL,
+     trimOutput <<- output
+   }
+   if (2%in%saveresult){
+-    save(output, file = paste0('extract/', filename, '_', tabell, '_', gsub('[ :]', '_', Sys.time()), '.rdata'))
++    save(output, file = paste0(filename, '_', tabell, '_', gsub('[ :]', '_', Sys.time()), '.rdata'))
+   }
+
+   return(output)
+@@ -468,7 +468,7 @@ index2overall <- function(trimobjs = NULL, base = NULL, startyr = NULL){
+ #     a "overall"version plot of indices which includes a
+ #     trend line based on indices
+ indexplot <- function(trimobjlist = NULL, base = NULL, ncol = NULL, makepdf = TRUE,
+-                      nrow.pdf = 6, speciesdat = NULL, startyr = NULL, filename = 'extract/TrimGrafer.pdf') {
++                      nrow.pdf = 6, speciesdat = NULL, startyr = NULL, filename = 'TrimGrafer.pdf') {
+   nsp <- length(trimobjlist)
+   if (nsp<ncol){
+     ncol <- nsp
+
+
+
+
+
+diff --git a/Code_for_specific_tasks.R b/Code_for_specific_tasks.R
+new file mode 100644
+index 0000000..e6438ff
+--- /dev/null
++++ b/Code_for_specific_tasks.R
+@@ -0,0 +1,79 @@
++# Du skall köra denna INNAN du kör Summary results. Har du redan kört Summary results får du köra om den. Det går också bra.
++
++#Körning 240124: BEFIN gick igenom! För tallbit och röd glada måste de först köras separat och sedan får deras resultat läggas in manuellt
++# i de summerande tabellerna.Kör tallbiten enbart, precis som för alla arterna. Sedan koden nedan.
++# RÅKA gick också igenom!
++
++# VinPKT
++# Running BEFIN (Brambling, 248) in winter
++# by changing the very highest values per route (50000+)
++# to  a lower number (now 50000)
++
++#befin <- trimOutput$Art_248$data
++#befin$count[befin$count>50000] <- 50000
++#fix1 <- trim(count~site + time,
++#             data = befin,
++#             model = 2, overdisp = TRUE, serialcor = TRUE, autodelete = TRUE, changepoints = 'all', verbose = TRUE)
++#
++#trimOutput$Art_248$value <- fix1 # Adds the new output data to the overall list from the run of all species (if you did such)
++
++# Running TABIT (Pine Grosbeak, 242) in winter
++# by actively removing three changepoints (1984, 1986 and 1994). The years 1984 and 1994 would actually be removed anyway
++# by autodelete (0 observations in these years), but 1986 has 1 bird seen, so 1986 must be removed in this way.
++
++# 1. Kör först tallbit i appen som de andra arterna.
++# 2. Kör koden nedan
++# 3. Kör Summary results
++
++load('trimOutput_tallbit19752022_Per3_totalvinter_pkt_2024-01-24_18_26_21.rdata') ##OBS!! Du måste ändra detta filnamn nedan också!"
++trimOutput <- output
++tabit <- trimOutput$Art_242$data
++fix1 <- trim(count~site + time,
++             data = tabit,
++             model = 2, overdisp = TRUE, serialcor = TRUE, autodelete = TRUE, changepoints = (1:42)[-c(10, 12, 20)], verbose = TRUE)
++trimOutput$Art_242$value <- fix1 # Adds the new output data to the overall list from the run of all species (if you did such)
++output <- trimOutput
++save(output, file = 'trimOutput_tallbit19752022_Per3_totalvinter_pkt_2024-01-24_18_26_21.rdata')
++
++# VinPKT
++
++# !!Behövs inget extra för RÖGLA, bara kör utan Ser.Corr. i appen (precis som för råkan på SomPKT)!!
++
++# Running RÖGLA (Red Kite, 043) in winter
++# by changing the very highest values per route (50+)
++# to  a lower number (now 40, well 30)
++
++rögla <- trimOutput$Art_43$data
++# rögla$count[rögla$count>30] <- 30  Denna behövs inte, bara kör utan Ser.Corr. (precis som råkan på SomPKT)
++fix1 <- trim(count~site + time,
++             data = rögla,
++             model = 2, overdisp = TRUE, serialcor = FALSE, autodelete = TRUE, changepoints = 'all', verbose = TRUE)
++
++trimOutput$Art_43$value <- fix1 # Adds the new output data to the overall list from the run of all species (if you did such)
++
++
++
++#**************************************************************************
++
++
++# Run a single species with "manually" removed change points
++mod1 <- trim(count~site + time,
++          data = trimOutput$Art_248$data,
++          model = 3, overdisp = FALSE, serialcor = FALSE)
++
++tb <- trimOutput$Art_242$data
++tb[tb$site=='530329-1_01'&tb$time==1986,'count'] <- 0
++fix1 <- trim(count~site + time,
++             data = tb,
++             model = 2, overdisp = TRUE, serialcor = TRUE, autodelete = TRUE, changepoints = 'all', verbose = TRUE)
++
++mod2 <- trim(count~site + time,
++             data = glada,
++             model = 2, overdisp = TRUE, serialcor = TRUE, autodelete = TRUE, changepoints = 'all', verbose = TRUE)
++
++mod2 <- trim(count~site2 + time,
++             data = befin,
++             model = 3, overdisp = TRUE, serialcor = TRUE)
++
++# This command is to load the rTrim manual
++vignette('TRIM_methods_v2', package='rtrim')

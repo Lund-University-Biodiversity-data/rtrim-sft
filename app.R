@@ -253,7 +253,7 @@ ui <- fluidPage(theme = 'flatly',
                            ),
                            hr(),
                            fluidRow(column(8,
-                                           checkboxInput('makepdf', label = 'Do you want graphs as pdf?',
+                                           checkboxInput('makepdf', label = 'Save graphs as pdf',
                                                          value = TRUE),
                                            textInput('filenamepdf', label = 'Enter filename:', value = 'TrimGrafer')
                                            ),
@@ -690,7 +690,7 @@ server <- function(input, output, session) {
     session$clientData$output_plot_width})
 
   output$rtSumm <- renderPrint({
-    summarizeRt()[[1]]})
+    summarizeRt()})
 
 
   output$dataTable <- DT::renderDataTable({

@@ -804,6 +804,7 @@ ExtractRes <- function(obj, tabell, base = 1998, yrrange){
 #### MakeXlsFile ####
 MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NULL, specieslanguage = 'SE',
                         combinations = NULL, single = TRUE, homepage = TRUE){
+  appOutput <- list()
   nsyst <- unname(sapply(obj[1], function(x) {length(x$Results)}))
   if(nsyst>1 & !is.null(combinations)){
     if (!is.list(combinations)){
@@ -843,9 +844,9 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       #             file = paste0('Trimcombined_', paste(colnames[cix], collapse = '_'), '_', max(combtab$Yr), '_Figurritning.xlsx'),
       #             sheetName='TRIMCOMBO', row.names=FALSE, showNA=FALSE)
       write_xlsx(list(TRIMCOMBO=combtab[order(combtab$ART),]),
-                  path = paste0(path_project_extract,'Trimcombined_', paste(colnames[cix], collapse = '_'), '_', max(combtab$Yr), '_Figurritning.xlsx'),
+                  path = paste0(path_project_extract,'Trimcombined_', paste(colnames[cix], collapse = '_'), '_', max(combtab$Yr), '_Figurritning_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx'),
                   format_headers = TRUE)
-      
+      appOutput[[length(appOutput)+1]] <- combtab[order(combtab$ART),]
     }
   } 
   if (single) {
@@ -879,7 +880,9 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       # write.xlsx2(singltab[order(singltab$ART),],
       #             file = paste0('Trim', colnames[i], '_', max(singltab$Yr), '_Figurritning.xlsx'), sheetName=paste0('TRIM', tabnames[i]), row.names=FALSE, showNA=FALSE)
       write_xlsx(singltab,
-                  path = paste0(path_project_extract,'Trim', colnames[i], '_', min(uyrs), '-', max(uyrs), '_Figurritning.xlsx'), format_headers = TRUE)
+                 path = paste0(path_project_extract,'Trim', colnames[i], '_', min(uyrs), '-', max(uyrs), '_Figurritning_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx'), 
+                 format_headers = TRUE)
+      appOutput[[length(appOutput)+1]] <- singltab
     }
   }
   if (homepage) {
@@ -960,12 +963,14 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       Tabell[,apply(Tabell, 2, function(a) all(is.na(a)))] <- NULL
       tabn <- max(gsub('imputed.', '', grep('imputed.', names(Tabell), value = T)))
       names(Tabell) <- gsub('imputed.', '', names(Tabell))
-      fname <- paste0(path_project_extract,'Trim', colnames[i], '_Tabeller.xlsx')
+      fname <- paste0(path_project_extract,'Trim', colnames[i], '_Tabeller_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx')
       hptabs <- list(TABELL = Tabell, Index = Index, Slopes = Slopes)
       # write.xlsx2(Tabell, file = fname, sheetName=paste('TABELL' , tabn), row.names=FALSE, showNA=FALSE)
       # write.xlsx2(Index, file = fname, sheetName="Index", row.names=FALSE, append=TRUE, showNA=FALSE)
       # write.xlsx2(Slopes, file = fname, sheetName="Slopes", row.names=FALSE, append=TRUE, showNA=FALSE)
       write_xlsx(hptabs, path = fname, format_headers = TRUE)
+      appOutput[[length(appOutput)+1]] <- hptabs
     }
   }
+  return(appOutput)
 }

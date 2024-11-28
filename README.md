@@ -39,3 +39,16 @@ and uncomment/edit these ones, with your configuration
 
 # create database rtrim-params
 sudo -u postgres psql < rtrim-params.sql
+
+
+# to install the mongo version and make it run with R version 4
+sudo apt-get install libsasl2-dev
+install.packages("mongolite")
+
+
+sudo apt-get install libcurl4-openssl-dev libxml2-dev libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev
+install.packages("devtools")
+devtools::install_github('jbryer/DTedit')
+install.packages("rjson")
+install.packages("stringr")
+install.packages("RCurl")

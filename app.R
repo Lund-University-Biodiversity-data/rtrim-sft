@@ -7,14 +7,14 @@ source('lib/SummarizeFunctions.R')
 # for connection from windows computer, ran locally
 #pool <- dbPool(drv = odbc::odbc(), dsn = 'SFT_64', encoding = 'windows-1252')
 
-pool<-dbConnect(RPostgres::Postgres(), dbname = postgres_database, user=postgres_user)
-poolParams<-dbConnect(RPostgres::Postgres(), dbname = postgres_database_parameters, user=postgres_user)
+pool<-dbConnect(RPostgres::Postgres(), dbname = postgres_database, user=postgres_user, password = postgres_password)
+poolParams<-dbConnect(RPostgres::Postgres(), dbname = postgres_database_parameters, user=postgres_user, password = postgres_password)
 
 #spdat2 <- getListsFromAla(poolParams)
 #spdat <- getSpeciesData(pool)
 
 
-spdat <- getSpeciesDataParams(poolParams)
+#spdat <- getSpeciesDataParams(poolParams)
 #spdat <<- getSpeciesDataMongo()
 speciesMatch <- getMatchSpecies(poolParams)
 
@@ -306,7 +306,7 @@ ui <- fluidPage(theme = 'flatly',
                                            ),
                                     column(6,
                                            p('The generated files can be found => .'),
-                                           tags$a("Download files folder", href=url_extract)
+                                           tags$a("Download files folder", href=url_extract, target="_blank", rel="noopener noreferrer")
                                            )
                                     ),
                            hr(),
@@ -582,13 +582,13 @@ server <- function(input, output, session) {
       projectId <- project_id_iwc
       projectActivityId <- project_activity_id_iwc
     } 
-    else if (input$tabsel == "totalvinter_pkt") {
+    else if (input$tabsel == "totalvinter_pkt") { # what is this else if?
       projectId <- project_id_punkt
       projectActivityId <- project_activity_id_iwc
     } 
 
     specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
-
+    
     nbSp <- nrow(specsSN)
 
     vSpecies <- vector()

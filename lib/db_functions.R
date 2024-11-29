@@ -66,9 +66,7 @@ getUniquesSpeciesFromScheme <- function (projectActivityId, speciesList) {
 	#	r <- unlist(strsplit(toString(ssn), ","))
 	#	vSn <- data.frame(name=r[c(TRUE)])
 	#}
-  print("vSn (db_func line 70):")
-  print(vSn)
-	
+
 	return(vSn)
 }
 
@@ -318,7 +316,7 @@ getMatchSpecies <- function (poolParams, speciesSel = "all") {
 	}
 
 	species <- dbGetQuery(poolParams, querysp)
-  #print(species)
+  
 	nbSp <- nrow(species)
 	iSp <- 1
 	spMatch <- array()
@@ -327,8 +325,7 @@ getMatchSpecies <- function (poolParams, speciesSel = "all") {
 		spMatch[[species$latin[iSp]]] <- species$art[iSp]
 		iSp <- iSp+1
 	}
-  print("structure of spMatch (db_func line 330):")
-  print(str(spMatch))
+  
 	return(spMatch)
 }
 

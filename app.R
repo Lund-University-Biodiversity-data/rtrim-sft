@@ -14,7 +14,7 @@ poolParams<-dbConnect(RPostgres::Postgres(), dbname = postgres_database_paramete
 #spdat <- getSpeciesData(pool)
 
 
-#spdat <- getSpeciesDataParams(poolParams)
+spdat <- getSpeciesDataParams(poolParams)
 #spdat <<- getSpeciesDataMongo()
 speciesMatch <- getMatchSpecies(poolParams)
 

@@ -316,15 +316,15 @@ DoQuery <- function (pool=NULL, tab=NULL, spec=NULL, specper=NULL, selyrs=NULL,
     dat <<- dat
   }
   if (2%in%savedat){
-    write.csv(dat, file = paste0('extract/psql_', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.csv'),
+    write.csv(dat, file = paste0(path_project_extract, 'psql_', filename, '_', tab, '_', gsub('[ :]', '_', round(Sys.time(), 0)), '.csv'),
               row.names = FALSE)
   }
   if (3%in%savedat){
-    write.csv2(dat, file = paste0('extract/psql_', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '_csv2.csv'),
+    write.csv2(dat, file = paste0(path_project_extract, 'psql_', filename, '_', tab, '_', gsub('[ :]', '_', round(Sys.time(), 0)), '_csv2.csv'),
               row.names = FALSE)
   }
   if (4%in%savedat){
-    save(dat, file = paste0('extract/psql_', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.rdata'))
+    save(dat, file = paste0(path_project_extract, 'psql_', filename, '_', tab, '_', gsub('[ :]', '_', round(Sys.time(), 0)), '.rdata'))
   }
 
   print(paste("fin DoQuery", Sys.time()))
@@ -387,7 +387,7 @@ RunTRIMmodel <- function(dat = NULL, modeltype = NULL, sp_to_run = NULL,
     trimOutput <<- output
   }
   if (2%in%saveresult){
-    save(output, file = paste0('extract/', filename, '_', tabell, '_', gsub('[ :]', '_', Sys.time()), '.rdata'))
+    save(output, file = paste0(path_project_extract, filename, '_', tabell, '_', gsub('[ :]', '_', round(Sys.time(), 0)), '.rdata'))
   }
   
   return(output)
@@ -484,7 +484,7 @@ index2overall <- function(trimobjs = NULL, base = NULL, startyr = NULL){
 #     a "overall"version plot of indices which includes a 
 #     trend line based on indices
 indexplot <- function(trimobjlist = NULL, base = NULL, ncol = NULL, makepdf = TRUE,
-                      nrow.pdf = 6, speciesdat = NULL, startyr = NULL, filename = 'extract/TrimGrafer.pdf') {
+                      nrow.pdf = 6, speciesdat = NULL, startyr = NULL, filename = 'TrimGrafer.pdf') {
   nsp <- length(trimobjlist)
   if (nsp<ncol){
     ncol <- nsp

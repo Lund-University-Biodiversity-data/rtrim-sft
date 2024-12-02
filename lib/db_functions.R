@@ -66,9 +66,7 @@ getUniquesSpeciesFromScheme <- function (projectActivityId, speciesList) {
 	#	r <- unlist(strsplit(toString(ssn), ","))
 	#	vSn <- data.frame(name=r[c(TRUE)])
 	#}
-  print("vSn (db_func line 70):")
-  print(vSn)
-	
+
 	return(vSn)
 }
 
@@ -112,8 +110,9 @@ getListsFromAla <- function (poolParams) {
 
 		dataurl <- getURL(paste0(species_list_url, animal_list, species_list_KVP_details), .encoding = 'UTF-8')
 
-		print(paste("URL to scan:",dataurl))
-
+		print(paste("URL to scan:", paste0(species_list_url, animal_list, species_list_KVP_details)))
+		print(paste("Data obtained:", dataurl))
+		
 		data_json_species = fromJSON(dataurl)
 		#data_json_species = fromJSON(file=paste0(species_list_url, bird_list_id))
 		print(paste("Elements found :",length(data_json_species)))
@@ -318,7 +317,7 @@ getMatchSpecies <- function (poolParams, speciesSel = "all") {
 	}
 
 	species <- dbGetQuery(poolParams, querysp)
-  #print(species)
+
 	nbSp <- nrow(species)
 	iSp <- 1
 	spMatch <- array()
@@ -327,8 +326,7 @@ getMatchSpecies <- function (poolParams, speciesSel = "all") {
 		spMatch[[species$latin[iSp]]] <- species$art[iSp]
 		iSp <- iSp+1
 	}
-  print("structure of spMatch (db_func line 330):")
-  print(str(spMatch))
+
 	return(spMatch)
 }
 

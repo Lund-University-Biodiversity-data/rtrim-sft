@@ -14,7 +14,7 @@ poolParams<-dbConnect(RPostgres::Postgres(), dbname = postgres_database_paramete
 #spdat <- getSpeciesData(pool)
 
 
-#spdat <- getSpeciesDataParams(poolParams)
+spdat <- getSpeciesDataParams(poolParams)
 #spdat <<- getSpeciesDataMongo()
 speciesMatch <- getMatchSpecies(poolParams)
 
@@ -31,6 +31,7 @@ startyr <- getStartYear(poolParams)
 onStop(function() {
   poolClose(pool)
   poolClose(poolParams)
+  mongoConnection$disconnect()
 })
 
 
@@ -596,9 +597,9 @@ server <- function(input, output, session) {
       vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
     }
     vSpecies <- sort(vSpecies)
-    #print(vSpecies)
-    specnames <- spdat$arthela[match(vSpecies,spdat$art)]
 
+    specnames <- spdat$arthela[match(vSpecies,spdat$art)]
+    
     speclist <- as.list(vSpecies)
     names(speclist) <- specnames
     
@@ -713,7 +714,7 @@ server <- function(input, output, session) {
       startyr[startyr$Delprogram==input$tabsel, c('Art', 'StartYear')]
     }
     byr <- ifelse(isolate(input$selyrsAnalyze[1])>1998, isolate(input$selyrsAnalyze[1]), 1998) 
-    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0('extract/',input$filenamepdf, '.pdf'))
+    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0(path_project_extract,input$filenamepdf, '.pdf'))
   }, height = function() {
     nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
     px <- session$clientData$output_plot_width*nr/3

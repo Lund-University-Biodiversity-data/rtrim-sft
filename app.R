@@ -79,6 +79,7 @@ ui <- fluidPage(theme = 'flatly',
                   ),
                   tags$title("Åkes superTRIMprogram")
                 ),
+                shinyjs::useShinyjs(),
                 titlePanel(title = div(img(style = 'display: inline-block;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                                        p(style = 'display: inline-block; margin: auto; width: 60%; text-align: center; font-size: 1.5em;',
                                          'Åkes superTRIMprogram - MongoDB version'))),
@@ -169,6 +170,18 @@ ui <- fluidPage(theme = 'flatly',
                            hr(),
                            actionButton("sendquery", "Submit query"),
                            hr(),
+                           p('Download the generated files:'),
+                           fluidRow(column(4,
+                                           downloadButton("downloadCSV", "Download csv")
+                                           ), 
+                                    column(4,
+                                           downloadButton("downloadCSV2", "Download csv (xls-friendly)")
+                                           ),
+                                    column(4,
+                                           downloadButton("downloadRDATA", "Download rdata")
+                                           ),
+                                    ),
+                           hr(),
                            #verbatimTextOutput('testtext'),
                            withSpinner(DT::dataTableOutput("dataTable"), proxy.height = '150px')
                   ),
@@ -253,13 +266,17 @@ ui <- fluidPage(theme = 'flatly',
                                             )
                            ),
                            hr(),
-                           fluidRow(column(8,
+                           fluidRow(column(6,
                                            checkboxInput('makepdf', label = 'Save graphs as pdf',
                                                          value = TRUE),
                                            textInput('filenamepdf', label = 'Enter filename:', value = 'TrimGrafer')
                                            ),
-                                    column(4,
-                                           actionButton("sendanalysis", "Run analysis"))
+                                    column(3,
+                                           actionButton("sendanalysis", "Run analysis")
+                                           ),
+                                    column(3,
+                                           downloadButton("downloadAnalysis", "Download rdata")
+                                           )
                                     ),
                            #actionButton("sendanalysis", "Run analysis"),
                            withSpinner(verbatimTextOutput('testtext2'), proxy.height = '100px'),
@@ -268,7 +285,13 @@ ui <- fluidPage(theme = 'flatly',
                   tabPanel('Display results',
                            #plotOutput('plot' )
                            hr(),
-                           textInput('displaysize', label = 'Result size (XX%):', value = '50%'),
+                           fluidRow(column(6,
+                                           textInput('displaysize', label = 'Result size (XX%):', value = '50%')
+                                           ),
+                                    column(6,
+                                           downloadButton("downloadPDF", "Download pdf")
+                                           )
+                                    ),
                            hr(),
                            withSpinner(uiOutput("plotResultsDisplay")),
                            hr()
@@ -306,8 +329,20 @@ ui <- fluidPage(theme = 'flatly',
                                            actionButton("sendquerysumm", "Generate excel files")
                                            ),
                                     column(6,
-                                           p('The generated files can be found => .'),
+                                           p('All generated files can be found here:'),
                                            tags$a("Download files folder", href=url_extract, target="_blank", rel="noopener noreferrer")
+                                           )
+                                    ),
+                           hr(),
+                           p('Download the generated files:'),
+                           fluidRow(column(4,
+                                           downloadButton("downloadComb", "Download xlsx combined")
+                                           ),
+                                    column(4,
+                                           downloadButton("downloadSingle", "Download xlsx single")
+                                           ),
+                                    column(4,
+                                           downloadButton("downloadHomepage", "Download xlsx homepage")
                                            )
                                     ),
                            hr(),
@@ -705,6 +740,125 @@ server <- function(input, output, session) {
     })
   
 
+  # configure download buttons
+  observe({
+    if (input$sendquery) {
+      Sys.sleep(1)
+      # enable the download buttons
+      if (2 %in% input$savedat) {
+        shinyjs::enable("downloadCSV")
+      }
+      if (3 %in% input$savedat) {
+        shinyjs::enable("downloadCSV2")
+      }
+      if (4 %in% input$savedat) {
+        shinyjs::enable("downloadRDATA")
+      }
+    }
+  })
+  
+  output$downloadCSV <- downloadHandler(
+    filename = paste0(input$filenameDat, '_', input$tabsel, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
+    content = function(file) {
+      write.csv(dat2, file, row.names = FALSE)
+    }
+  )
+  
+  output$downloadCSV2 <- downloadHandler(
+    filename = paste0(input$filenameDat, '_', input$tabsel, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
+    content = function(file) {
+      write.csv2(dat2, file, row.names = FALSE)
+    }
+  )
+  
+  output$downloadRDATA <- downloadHandler(
+    filename = paste0(input$filenameDat, '_', input$tabsel, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
+    content = function(file) {
+      save(dat2, file = file)
+    }
+  )
+  
+  observe({
+    if (input$sendanalysis) {
+      Sys.sleep(1)
+      # enable the download buttons
+      if (2 %in% input$saveresult) {
+        shinyjs::enable("downloadAnalysis")
+      }
+      if (input$makepdf) {
+        shinyjs::enable("downloadPDF")
+      }
+    }
+  })
+  
+  output$downloadAnalysis <- downloadHandler(
+    filename = paste0(input$filenameRes, '_', input$tabsel, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
+    content = function(file) {
+      save(trimOutput, file = file)
+    }
+  )
+  
+  output$downloadPDF <- downloadHandler(
+    filename = paste0(input$filenamepdf, '.pdf'),
+    content = function(file) {
+      file.copy(from=paste0(path_project_extract,input$filenamepdf, '.pdf'), to=file)
+    }
+  )
+  
+  observe({
+    if (input$sendquerysumm) {
+      Sys.sleep(1)
+      # enable the download buttons
+      if (length(input$tableSumm) > 1) {
+        shinyjs::enable("downloadComb")
+      }
+      if (input$singleSumm) {
+        shinyjs::enable("downloadSingle")
+      }
+      if (input$homepageSumm) {
+        shinyjs::enable("downloadHomepage")
+      }
+    }
+  })
+  
+  output$downloadComb <- downloadHandler(
+    filename = paste0('Trimcombined_', input$filenameResSumm, '_Figurritning_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
+    content = function(file) {
+      #      if (length(input$tableSumm) > 1) {
+      write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
+      #      }
+    }
+  )
+  
+  output$downloadSingle <- downloadHandler(
+    filename = paste0('Trim_', input$filenameResSumm, '_Figurritning_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
+    content = function(file) {
+      if (length(input$tableSumm) == 1) {
+        write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
+      }
+      else if (length(input$tableSumm) > 1) {
+        write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
+      }
+    }
+  )
+  
+  output$downloadHomepage <- downloadHandler(
+    filename = paste0('Trim_', input$filenameResSumm,'_Tabeller_', gsub('[ :]', '_', round(Sys.time(),0)),'.xlsx'),
+    content = function(file) {
+      write_xlsx(summarizeRt()[[length(summarizeRt())]], file, format_headers = TRUE)
+    }
+  )
+  
+  shinyjs::disable("downloadCSV")
+  shinyjs::disable("downloadCSV2")
+  shinyjs::disable("downloadRDATA")
+  shinyjs::disable("downloadAnalysis")
+  shinyjs::disable("downloadPDF")
+  shinyjs::disable("downloadComb")
+  shinyjs::disable("downloadSingle")
+  shinyjs::disable("downloadHomepage")
+  
+  
   output$plot <- renderPlot({
     worked <- sapply(resultout(), function(x) inherits(x$value,'trim'))
     restoplot <- resultout()[worked]

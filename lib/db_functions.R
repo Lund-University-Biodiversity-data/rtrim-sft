@@ -110,7 +110,7 @@ getListsFromAla <- function (poolParams) {
 
 		dataurl <- getURL(paste0(species_list_url, animal_list, species_list_KVP_details), .encoding = 'UTF-8')
 
-		print(paste("URL to scan:",dataurl))
+		print(paste("URL to scan:",paste0(species_list_url, animal_list, species_list_KVP_details)))
 
 		data_json_species = fromJSON(dataurl)
 		#data_json_species = fromJSON(file=paste0(species_list_url, bird_list_id))

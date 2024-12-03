@@ -108,8 +108,8 @@ ui <- fluidPage(theme = 'flatly',
                                                        `Brand new mongoDB` = 'mongodb'),
                                         selected = 'mongodb'),
                            radioButtons('tabsel', label = 'Select monitoring scheme',
-                                        choices = list(Standardrutter = 'totalstandard'
-                                                       , Sommarpunktrutter = 'totalsommar_pkt',
+                                        choices = list(Standardrutter = 'totalstandard', 
+                                                       Sommarpunktrutter = 'totalsommar_pkt',
                                                        Vinterpunktrutter =  'totalvinter_pkt',
                                                        #`Sjöfågeltaxering Vår` = 'totalvatmark',
                                                        `IWC Januari` = 'total_iwc_januari',
@@ -248,8 +248,12 @@ ui <- fluidPage(theme = 'flatly',
                                                                                         `Coasts only (ki=K)` = 'coast',
                                                                                         `Inland only (ki=I)` = 'inland',
                                                                                         `Eastern coastal (ev=E & ki=K)` = 'east',
-                                                                                        `Western coastal (ev=V & ki=K)` = 'west'),
-                                                                         selected = 'all'))
+                                                                                        `Western coastal (ev=V & ki=K)` = 'west',
+                                                                                        `Counties (län)` = 'lan'),
+                                                                         selected = 'all')),
+                                                     column(8,
+                                                            conditionalPanel(condition = 'input.specrtIWCAnalyze == "lan"',
+                                                                             uiOutput('lanIWCCheckboxAnalyze')))
                                             )
                            ),
                            hr(),
@@ -284,7 +288,9 @@ ui <- fluidPage(theme = 'flatly',
                                                                choices = list(`totalstandard`= "totalstandard",
                                                                               `totalsommar_pkt`= "totalsommar_pkt",
                                                                               `totalvinter_pkt`= "totalvinter_pkt",
-                                                                              `totalvatmark`= "totalvatmark"),
+                                                                              #`totalvatmark`= "totalvatmark"),
+                                                                              `IWC Januari` = "total_iwc_januari",
+                                                                              `IWC September` = "total_iwc_september"),
                                                                selected = "totalstandard", inline = TRUE),
                            hr(),
                            p('Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter.'),
@@ -376,7 +382,8 @@ server <- function(input, output, session) {
            coast = regIWCdat$site[regIWCdat$ki=='K'],
            inland = regIWCdat$site[regIWCdat$ki=='I'],
            east = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='E'],
-           west = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='V'])
+           west = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='V'],
+           lan = regIWCdat$site[regIWCdat$lan%in%input$lanspecrtIWCAnalyze])
   })
   
   data <- eventReactive(input$sendquery,{
@@ -682,6 +689,19 @@ server <- function(input, output, session) {
                       checkboxGroupInput(inputId = 'indspecrtAnalyze', label = NULL,
                                          choiceNames = as.list(rts),
                                          choiceValues = as.list(regStdat$internalSiteId),
+                                         selected = NULL)
+             )
+    )
+  })
+  
+  output$lanIWCCheckboxAnalyze <- renderUI({
+    lans <- sort(unique(regIWCdat$lan))
+    lanlist <- as.list(lans)
+    tags$div(tags$div(strong(p("Select county(ies)"))),
+             tags$div(align = 'left',
+                      class = 'multicol8',
+                      checkboxGroupInput(inputId = 'lanspecrtIWCAnalyze', label = NULL,
+                                         choices = lanlist,
                                          selected = NULL)
              )
     )

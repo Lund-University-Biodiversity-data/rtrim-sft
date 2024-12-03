@@ -483,7 +483,7 @@ getIWCDataMongo <- function (projectId) {
 
 	res <- mongoConnection$iterate(
 	  query = sprintf('{"status":"active", "adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
-	  fields = '{"adminProperties.internalSiteId":1, "commonName":1, "name":1, "adminProperties.ki":1, "adminProperties.ev":1}'
+	  fields = '{"adminProperties.internalSiteId":1, "commonName":1, "name":1, "adminProperties.ki":1, "adminProperties.ev":1, "adminProperties.lan":1}'
 	)
 
 	nbElt <- 0
@@ -492,6 +492,7 @@ getIWCDataMongo <- function (projectId) {
 	vCommonName <- vector()
 	vKi <- vector()
 	vEv <- vector()
+	vLan <- vector()
 
 	while(!is.null(x <- res$one())){
 		nbElt <- nbElt +1
@@ -504,10 +505,12 @@ getIWCDataMongo <- function (projectId) {
 		else vKi[nbElt] <- ""
 		if (!is.null(x$adminProperties$ev)) vEv[nbElt] <- x$adminProperties$ev
 		else vEv[nbElt] <- ""
+		if (!is.null(x$adminProperties$lan)) vLan[nbElt] <- x$adminProperties$lan
+		else vLan[nbElt] <- ""
 	}
 
-	result <- data.frame(vSite, vName, vKi, vEv)
-	colnames(result) <- c("site", "lokalnamn", "ki", "ev")
+	result <- data.frame(vSite, vName, vKi, vEv, vLan)
+	colnames(result) <- c("site", "lokalnamn", "ki", "ev", "lan")
 
 	return(result)
 }

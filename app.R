@@ -641,7 +641,7 @@ server <- function(input, output, session) {
   })
   
   output$lanCheckboxAnalyze <- renderUI({
-    lans <- sort(unique(regStdat$lan))
+    lans <- sort(unique(regStdat$lan[nchar(regStdat$lan) > 0]))
     lanlist <- as.list(lans)
     tags$div(tags$div(strong(p("Select county(ies)"))),
              tags$div(align = 'left',
@@ -654,7 +654,7 @@ server <- function(input, output, session) {
   })
   
   output$lskCheckboxAnalyze <- renderUI({
-    lsks <- sort(unique(regStdat$lsk))
+    lsks <- sort(unique(regStdat$lsk[nchar(regStdat$lsk) > 0]))
     lsklist <- as.list(lsks)
     tags$div(tags$div(strong(p("Select province(s)"))),
              tags$div(align = 'left',
@@ -695,7 +695,7 @@ server <- function(input, output, session) {
   })
   
   output$lanIWCCheckboxAnalyze <- renderUI({
-    lans <- sort(unique(regIWCdat$lan))
+    lans <- sort(unique(regIWCdat$lan[nchar(regIWCdat$lan) > 0]))
     lanlist <- as.list(lans)
     tags$div(tags$div(strong(p("Select county(ies)"))),
              tags$div(align = 'left',

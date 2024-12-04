@@ -59,7 +59,7 @@ ui <- fluidPage(theme = 'flatly',
                                 column-fill: balanced;
                             }  
                             .checkbox {
-                                margin-top: 0px;
+                                margin-top: 10px;
                                 -webkit-margin-after: 1px;
                                 margin-after: 0px;
                             }

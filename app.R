@@ -27,6 +27,11 @@ startyr <- getStartYear(poolParams)
 #startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
 #startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
 
+counties <- data.frame(code = c("AB", "C", "D", "E", "F", "G", "H", "I", "K", "M", "N", "O", "S", "T", "U", "W", "X", "Y", "Z", "AC", "BD"),
+                       name = c("Stockholms län", "Uppsala län", "Södermanlands län", "Östergötlands län", "Jönköpings län", "Kronobergs län",
+                                "Kalmar län", "Gotlands län", "Blekinge län", "Skåne län", "Hallands län", "Västra Götalands län", "Värmlands län",
+                                "Örebro län", "Västmanlands län", "Dalarnas län", "Gävleborgs län", "Västernorrlands län", "Jämtlands län", "Västerbottens län", "Norrbottens län"))
+
  ## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
 onStop(function() {
   poolClose(pool)
@@ -256,6 +261,17 @@ ui <- fluidPage(theme = 'flatly',
                                                                              uiOutput('lanIWCCheckboxAnalyze')))
                                             )
                            ),
+                           conditionalPanel(condition = 'input.tabsel == "totalvinter_pkt" || input.tabsel == "totalsommar_pkt"',
+                                            fluidRow(column(4,
+                                                            radioButtons('specrtPKTAnalyze', label = 'Select sites to include',
+                                                                         choices = list(`All availble sites` = 'all',
+                                                                                        `Counties (län)` = 'lan'),
+                                                                         selected = 'all')),
+                                                     column(8,
+                                                            conditionalPanel(condition = 'input.specrtPKTAnalyze == "lan"',
+                                                                             uiOutput('lanPKTCheckboxAnalyze')))
+                                            )
+                           ),
                            hr(),
                            fluidRow(column(8,
                                            checkboxInput('makepdf', label = 'Save graphs as pdf',
@@ -386,6 +402,15 @@ server <- function(input, output, session) {
            lan = regIWCdat$site[regIWCdat$lan%in%input$lanspecrtIWCAnalyze])
   })
   
+  # get PKT data
+  regPKTdat <<- getPKTDataMongo(project_id_punkt)
+  
+  specroutePKTAnalyze <- reactive({
+    switch(input$specrtPKTAnalyze,
+           all = regPKTdat$site,
+           lan = regPKTdat$site[regPKTdat$lan%in%input$lanspecrtPKTAnalyze])
+  })
+  
   data <- eventReactive(input$sendquery,{
 
     correctionsArt <- data.frame(FALSE, FALSE, FALSE)
@@ -493,9 +518,14 @@ server <- function(input, output, session) {
     tix <- dat$time%in%(input$selyrsAnalyze[1]:input$selyrsAnalyze[2])
     if(input$tabsel=='totalstandard'){
       rix <- dat$site%in%specrouteAnalyze()
-    } else if (input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
+    } 
+    else if (input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
       rix <- dat$site%in%specrouteIWCAnalyze()
-    } else {
+    }
+    else if (input$tabsel=='totalvinter_pkt' | input$tabsel=='totalsommar_pkt') {
+      rix <- dat$site%in%specroutePKTAnalyze()
+    }
+    else {
       rix <- !logical(nrow(dat))
     }
     dat <- subset(dat, tix & rix)
@@ -701,6 +731,19 @@ server <- function(input, output, session) {
              tags$div(align = 'left',
                       class = 'multicol8',
                       checkboxGroupInput(inputId = 'lanspecrtIWCAnalyze', label = NULL,
+                                         choices = lanlist,
+                                         selected = NULL)
+             )
+    )
+  })
+  
+  output$lanPKTCheckboxAnalyze <- renderUI({
+    lans <- sort(unique(regPKTdat$lan[nchar(regPKTdat$lan) > 0]))
+    lanlist <- as.list(lans)
+    tags$div(tags$div(strong(p("Select county(ies)"))),
+             tags$div(align = 'left',
+                      class = 'multicol6',
+                      checkboxGroupInput(inputId = 'lanspecrtPKTAnalyze', label = NULL,
                                          choices = lanlist,
                                          selected = NULL)
              )

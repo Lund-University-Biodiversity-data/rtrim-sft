@@ -516,6 +516,42 @@ getIWCDataMongo <- function (projectId) {
 }
 
 
+getPKTDataMongo <- function (projectId) {
+  
+  mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
+  
+  res <- mongoConnection$iterate(
+    query = sprintf('{"status":"active", "adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
+    fields = '{"adminProperties.internalSiteId":1, "name":1, "adminProperties.lan":1}'
+  )
+  
+  nbElt <- 0
+  vSite <- vector()
+  vName <- vector()
+  vLan <- vector()
+  
+  while(!is.null(x <- res$one())){
+    nbElt <- nbElt +1
+    
+    vSite[nbElt] <- x$adminProperties$internalSiteId
+    vName[nbElt] <- x$name
+    if (!is.null(x$adminProperties$lan)) vLan[nbElt] <- x$adminProperties$lan
+    else vLan[nbElt] <- ""
+  }
+  
+  result <- data.frame(vSite, vName, vLan)
+  colnames(result) <- c("site", "lokalnamn", "lan")
+  
+  for(iLan in 1:nrow(result)) {
+    if (nchar(result$lan[iLan]) < 3 && nchar(result$lan[iLan]) > 0) {
+      result$lan[iLan] <- counties$name[counties$code == result$lan[iLan]]
+    }
+  }
+  
+  return(result)
+}
+
+
 getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod) {
 
 	print(paste("start getTabMinus1Mongo ", Sys.time()))

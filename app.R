@@ -27,7 +27,8 @@ startyr <- getStartYear(poolParams)
 #startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
 #startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
 
-counties <- data.frame(code = c("AB", "C", "D", "E", "F", "G", "H", "I", "K", "M", "N", "O", "S", "T", "U", "W", "X", "Y", "Z", "AC", "BD"),
+# data frame to match county (län) codes with the county's full names
+counties <<- data.frame(code = c("AB", "C", "D", "E", "F", "G", "H", "I", "K", "M", "N", "O", "S", "T", "U", "W", "X", "Y", "Z", "AC", "BD"),
                        name = c("Stockholms län", "Uppsala län", "Södermanlands län", "Östergötlands län", "Jönköpings län", "Kronobergs län",
                                 "Kalmar län", "Gotlands län", "Blekinge län", "Skåne län", "Hallands län", "Västra Götalands län", "Värmlands län",
                                 "Örebro län", "Västmanlands län", "Dalarnas län", "Gävleborgs län", "Västernorrlands län", "Jämtlands län", "Västerbottens län", "Norrbottens län"))
@@ -402,7 +403,7 @@ server <- function(input, output, session) {
            lan = regIWCdat$site[regIWCdat$lan%in%input$lanspecrtIWCAnalyze])
   })
   
-  # get PKT data
+  # get site data for sommarpunktrutter and vinterpunktrutter
   regPKTdat <<- getPKTDataMongo(project_id_punkt)
   
   specroutePKTAnalyze <- reactive({

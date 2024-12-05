@@ -515,7 +515,9 @@ getIWCDataMongo <- function (projectId) {
 	return(result)
 }
 
-
+# get site data from mongoDB for schemes Sommarpunktrutter and Vinterpunktrutter
+# based on their project ID in the database
+# output: data frame used for filtering data by county (län)
 getPKTDataMongo <- function (projectId) {
   
   mongoConnection  <- mongo(collection = "site",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
@@ -542,6 +544,9 @@ getPKTDataMongo <- function (projectId) {
   result <- data.frame(vSite, vName, vLan)
   colnames(result) <- c("site", "lokalnamn", "lan")
   
+  # some sites have the county code listed, most the county name
+  # replace the codes with the respective county name
+  # where no county is assigned to a site, leave empty
   for(iLan in 1:nrow(result)) {
     if (nchar(result$lan[iLan]) < 3 && nchar(result$lan[iLan]) > 0) {
       result$lan[iLan] <- counties$name[counties$code == result$lan[iLan]]

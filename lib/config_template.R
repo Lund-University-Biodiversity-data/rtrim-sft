@@ -23,7 +23,7 @@ mongo_password <<- "blabla"
 
 species_list_api_url <<- "https://lists.biodiversitydata.se/ws/"
 species_list_url <<- paste0(species_list_api_url, "speciesListItems/")
-species_list_KVP_details <<- "?includeKVP=true"
+species_list_KVP_details <<- "?includeKVP=true&max=1000"
 list_id_bird <<- "dr627"
 list_id_owl <<- "dr167"
 list_id_mammal <<- "dr159"

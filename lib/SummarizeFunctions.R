@@ -10,9 +10,15 @@ library(writexl)
 
 
 DoSummarizeResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NULL, startyr=NULL, homepage=NULL, single=NULL, combinations = NULL, lang=NULL) {
-
-  shortcolumn <- c('T')
-  shorttab <- c('T')
+  tabShorts <- data.frame(table = c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt', 'totalvatmark', 'total_iwc_januari', 'total_iwc_september', 'misc_census'),
+                             short = c('T', 'S', 'V', 'VAT', 'IWCjan', 'IWCsep', 'M'))
+  shortcolumn <- c()
+  shorttab <- c()
+  
+  for (t in 1:length(tables)) {
+    shortcolumn[t] <- tabShorts$short[tabShorts$table == tables[t]]
+    shorttab[t] <- tabShorts$short[tabShorts$table == tables[t]]
+  }
   
   ## Read in rdata-files with results
   ## Finds and read in the latest file produced for each monitoring system (and called trimOutput-something...)

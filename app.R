@@ -336,13 +336,13 @@ ui <- fluidPage(theme = 'flatly',
                            hr(),
                            p('Download the generated files:'),
                            fluidRow(column(4,
-                                           downloadButton("downloadComb", "Download xlsx combined")
+                                           downloadButton("downloadComb", "Download combined table")
                                            ),
                                     column(4,
-                                           downloadButton("downloadSingle", "Download xlsx single")
+                                           downloadButton("downloadSingle", "Download individual table(s)")
                                            ),
                                     column(4,
-                                           downloadButton("downloadHomepage", "Download xlsx homepage")
+                                           downloadButton("downloadHomepage", "Download overview table(s)")
                                            )
                                     ),
                            hr(),
@@ -821,6 +821,7 @@ server <- function(input, output, session) {
     }
   })
   
+  # download file reporting on all selected schemes next to each other
   output$downloadComb <- downloadHandler(
     filename = paste0('Trimcombined_', input$filenameResSumm, '_Figurritning_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
     content = function(file) {
@@ -830,6 +831,7 @@ server <- function(input, output, session) {
     }
   )
   
+  # download file reporting on all selected schemes individually
   output$downloadSingle <- downloadHandler(
     filename = paste0('Trim_', input$filenameResSumm, '_Figurritning_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
     content = function(file) {
@@ -842,10 +844,16 @@ server <- function(input, output, session) {
     }
   )
   
+  # download overview data file on all selected schemes individually
   output$downloadHomepage <- downloadHandler(
     filename = paste0('Trim_', input$filenameResSumm,'_Tabeller_', gsub('[ :]', '_', round(Sys.time(),0)),'.xlsx'),
     content = function(file) {
-      write_xlsx(summarizeRt()[[length(summarizeRt())]], file, format_headers = TRUE)
+      if (length(input$tableSumm) == 1) {
+        write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
+      }
+      else if (length(input$tableSumm) > 1) {
+        write_xlsx(summarizeRt()[[3]], file, format_headers = TRUE)
+      }
     }
   )
   

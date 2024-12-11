@@ -559,6 +559,35 @@ getPKTDataMongo <- function (projectId) {
 getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod) {
 
 	print(paste("start getTabMinus1Mongo ", Sys.time()))
+  
+  # query for approved activities
+  mongoConnection  <- mongo(collection = "activity",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
+  
+  act <- mongoConnection$aggregate(sprintf('[
+	    {"$match": {
+	        "projectActivityId" : %s,
+	        "verificationStatus" : "approved"
+	    }}, 
+	    {"$project": {
+	        "activityId":1
+	    }}
+	]', paste0('"', projectActivityId, '"')),
+  options = '{"allowDiskUse":true}',
+  iterate = TRUE
+  )
+  
+  nbElt <- 0
+  aActivities <- array()
+  
+  while(!is.null(output <- act$one())){
+    
+    nbElt <- nbElt +1
+    
+    aActivities[nbElt] <- output$activityId
+  }
+  
+  activities <-  paste('"', aActivities, '"', sep = "", collapse = ", ")
+  
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	fieldCount <- "individualCount"
@@ -579,18 +608,8 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 	res <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
 			%s
-	        "status" : "active"
-	    }},
-	    {"$lookup": {
-          "from": "activity",
-          "localField": "activityId",
-          "foreignField": "activityId",
-          "as": "actID"
-        }},
-        {"$unwind": "$activityId"},
-	    {"$match": {
-	        "actID.projectActivityId" : %s,
-	        "actID.verificationStatus" : "approved"
+	        "status" : "active",
+	        "activityId": {"$in" : [%s]}
 	    }},
 	    {"$project": {
 	        "data.location":1,
@@ -616,7 +635,7 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', checkPeriod, paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
+	]', checkPeriod, activities, paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -684,30 +703,49 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 		}
 	}
 
-
+	# query for approved activities
+	mongoConnection  <- mongo(collection = "activity",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
+	
+	act <- mongoConnection$aggregate(sprintf('[
+	    {"$match": {
+	        "projectActivityId" : %s,
+	        "verificationStatus" : "approved"
+	    }}, 
+	    {"$project": {
+	        "activityId":1
+	    }}
+	]', paste0('"', projectActivityId, '"')),
+	options = '{"allowDiskUse":true}',
+	iterate = TRUE
+	)
+	
+	nbElt <- 0
+	aActivities <- array()
+	
+	while(!is.null(output <- act$one())){
+	  
+	  nbElt <- nbElt +1
+	  
+	  aActivities[nbElt] <- output$activityId
+	}
+	
+	activities <-  paste('"', aActivities, '"', sep = "", collapse = ", ")
+	
+  # query for years in which each site was surveyed
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	res1 <- mongoConnection$aggregate(sprintf('[
-		{"$match": {
-			%s
+		  {"$match": {
+			    %s
 	        "status" : "active",
-	        %s 
-	    }},
-	    {"$lookup": {
-          "from": "activity",
-          "localField": "activityId",
-          "foreignField": "activityId",
-          "as": "actID"
-        }},
-	    {"$match": {
-	        "actID.projectActivityId" : %s,
-	        "actID.verificationStatus" : "approved"
+	        "activityId": {"$in" : [%s]},
+	        %s
 	    }},
 	    {"$project": {
 	        "data.location":1,
 	        "data.surveyDate":1
 	    }}
-	]', checkPeriod, or, paste0('"', projectActivityId, '"')),
+	]', checkPeriod, activities, or),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -722,8 +760,8 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 
 		nbElt <- nbElt +1
 
-		#vKarta[nbElt] <- toString(output$data$location)
-		vKartaMatch[nbElt] <- sites[[toString(output$data$location)]]
+	  #vKarta[nbElt] <- toString(output$data$location)
+	  vKartaMatch[nbElt] <- sites[[toString(output$data$location)]]
 
 		# for the winter protocols, some months have to be lined to the year before
 		if (projectActivityId == project_activity_id_winter) {
@@ -760,21 +798,12 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 	colnames(result1) <- c("site", "time")
 	result1 <- unique(result1)
 
-
+  # query for species observed at the sites
 	res2 <- mongoConnection$aggregate(sprintf('[
-		{"$match": {
-			%s
-	        "status" : "active"
-	    }},
-	    {"$lookup": {
-          "from": "activity",
-          "localField": "activityId",
-          "foreignField": "activityId",
-          "as": "actID"
-        }},
-	    {"$match": {
-	        "actID.projectActivityId" : %s,
-	        "actID.verificationStatus" : "approved"
+  		{"$match": {
+  			  %s
+	        "status" : "active",
+	        "activityId": {"$in" : [%s]}
 	    }},
 	    {"$project": {
 	        "data.location":1,
@@ -800,7 +829,7 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', checkPeriod, paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
+	]', checkPeriod, activities, paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -902,6 +931,36 @@ createOrEventDateCriteria <- function (years, vinter= FALSE, iwcjanuari=FALSE, i
 getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod) {
 
 	print(paste("start getTabCountMongo ", Sys.time()))
+  
+  # query for approved activities
+  mongoConnection  <- mongo(collection = "activity",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
+  
+  act <- mongoConnection$aggregate(sprintf('[
+	    {"$match": {
+	        "projectActivityId" : %s,
+	        "verificationStatus" : "approved"
+	    }}, 
+	    {"$project": {
+	        "activityId":1
+	    }}
+	]', paste0('"', projectActivityId, '"')),
+                                   options = '{"allowDiskUse":true}',
+                                   iterate = TRUE
+  )
+  
+  nbElt <- 0
+  aActivities <- array()
+  
+  while(!is.null(output <- act$one())){
+    
+    nbElt <- nbElt +1
+    
+    aActivities[nbElt] <- output$activityId
+  }
+  
+  activities <-  paste('"', aActivities, '"', sep = "", collapse = ", ")
+  
+  # query for count data i.e. number of individuals observed
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	fieldCount <- "individualCount"
@@ -936,17 +995,8 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 		{"$match": {
 			%s
 	        "status" : "active",
+	        "activityId": {"$in" : [%s]},
 	        %s 
-	    }},
-	    {"$lookup": {
-          "from": "activity",
-          "localField": "activityId",
-          "foreignField": "activityId",
-          "as": "actID"
-        }},
-	    {"$match": {
-	        "actID.projectActivityId" : %s,
-	        "actID.verificationStatus" : "approved"
 	    }},
 	    {"$project": {
 	        "data.location":1,
@@ -970,7 +1020,7 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 	        %s
 	        "ssn" : {"$in" : [%s]}
 	    }}
-	]', checkPeriod, or, paste0('"', projectActivityId, '"'), paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
+	]', checkPeriod, activities, or, paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)

@@ -1,22 +1,43 @@
 
 getUniquesSpeciesFromScheme <- function (projectActivityId, speciesList) {
+  
+  print(paste("start getUniquesSpeciesFromScheme", Sys.time()))
+  
+  # query for approved activities
+  mongoConnection  <- mongo(collection = "activity",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
+  
+  act <- mongoConnection$aggregate(sprintf('[
+	    {"$match": {
+	        "projectActivityId" : %s,
+	        "verificationStatus" : "approved"
+	    }}, 
+	    {"$project": {
+	        "activityId":1
+	    }}
+	]', paste0('"', projectActivityId, '"')),
+  options = '{"allowDiskUse":true}',
+  iterate = TRUE
+  )
+  
+  nbElt <- 0
+  aActivities <- array()
+  
+  while(!is.null(output <- act$one())){
+    
+    nbElt <- nbElt +1
+    
+    aActivities[nbElt] <- output$activityId
+  }
+  
+  activities <-  paste('"', aActivities, '"', sep = "", collapse = ", ")
 
+  # query for species scientific names
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
 	res <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
-	        "status" : "active"
-	    }},
-	    {"$lookup": {
-          "from": "activity",
-          "localField": "activityId",
-          "foreignField": "activityId",
-          "as": "actID"
-        }},
-        {"$unwind": "$activityId"},
-	    {"$match": {
-	        "actID.projectActivityId" : %s,
-	        "actID.verificationStatus" : "approved"
+	        "status" : "active",
+	        "activityId": {"$in" : [%s]}
 	    }},
 	    {"$project": {
 	        "data.observations":1
@@ -36,7 +57,7 @@ getUniquesSpeciesFromScheme <- function (projectActivityId, speciesList) {
 	    {"$sort" : {
 		    "speciesUnique" : 1
 		}}
-	    ]', paste0('"', projectActivityId, '"')),
+	    ]', activities),
 		options = '{"allowDiskUse":true}',
 		iterate = TRUE
 	)
@@ -67,6 +88,8 @@ getUniquesSpeciesFromScheme <- function (projectActivityId, speciesList) {
 	#	vSn <- data.frame(name=r[c(TRUE)])
 	#}
 
+	print(paste("end getUniquesSpeciesFromScheme", Sys.time()))
+	
 	return(vSn)
 }
 
@@ -556,37 +579,9 @@ getPKTDataMongo <- function (projectId) {
 }
 
 
-getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod) {
+getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod, activities) {
 
 	print(paste("start getTabMinus1Mongo ", Sys.time()))
-  
-  # query for approved activities
-  mongoConnection  <- mongo(collection = "activity",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
-  
-  act <- mongoConnection$aggregate(sprintf('[
-	    {"$match": {
-	        "projectActivityId" : %s,
-	        "verificationStatus" : "approved"
-	    }}, 
-	    {"$project": {
-	        "activityId":1
-	    }}
-	]', paste0('"', projectActivityId, '"')),
-  options = '{"allowDiskUse":true}',
-  iterate = TRUE
-  )
-  
-  nbElt <- 0
-  aActivities <- array()
-  
-  while(!is.null(output <- act$one())){
-    
-    nbElt <- nbElt +1
-    
-    aActivities[nbElt] <- output$activityId
-  }
-  
-  activities <-  paste('"', aActivities, '"', sep = "", collapse = ", ")
   
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
@@ -673,7 +668,7 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 
 
 
-getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod) {
+getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod, activities) {
 
 	print(paste("start getTabZeroMongo ", Sys.time()))
 
@@ -703,33 +698,6 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 		}
 	}
 
-	# query for approved activities
-	mongoConnection  <- mongo(collection = "activity",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
-	
-	act <- mongoConnection$aggregate(sprintf('[
-	    {"$match": {
-	        "projectActivityId" : %s,
-	        "verificationStatus" : "approved"
-	    }}, 
-	    {"$project": {
-	        "activityId":1
-	    }}
-	]', paste0('"', projectActivityId, '"')),
-	options = '{"allowDiskUse":true}',
-	iterate = TRUE
-	)
-	
-	nbElt <- 0
-	aActivities <- array()
-	
-	while(!is.null(output <- act$one())){
-	  
-	  nbElt <- nbElt +1
-	  
-	  aActivities[nbElt] <- output$activityId
-	}
-	
-	activities <-  paste('"', aActivities, '"', sep = "", collapse = ", ")
 	
   # query for years in which each site was surveyed
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
@@ -928,37 +896,9 @@ createOrEventDateCriteria <- function (years, vinter= FALSE, iwcjanuari=FALSE, i
     return(or)
 }
 
-getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod) {
+getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod, activities) {
 
 	print(paste("start getTabCountMongo ", Sys.time()))
-  
-  # query for approved activities
-  mongoConnection  <- mongo(collection = "activity",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
-  
-  act <- mongoConnection$aggregate(sprintf('[
-	    {"$match": {
-	        "projectActivityId" : %s,
-	        "verificationStatus" : "approved"
-	    }}, 
-	    {"$project": {
-	        "activityId":1
-	    }}
-	]', paste0('"', projectActivityId, '"')),
-                                   options = '{"allowDiskUse":true}',
-                                   iterate = TRUE
-  )
-  
-  nbElt <- 0
-  aActivities <- array()
-  
-  while(!is.null(output <- act$one())){
-    
-    nbElt <- nbElt +1
-    
-    aActivities[nbElt] <- output$activityId
-  }
-  
-  activities <-  paste('"', aActivities, '"', sep = "", collapse = ", ")
   
   # query for count data i.e. number of individuals observed
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
@@ -1165,13 +1105,44 @@ mergeTabs <- function (minus1, zeros, stdcount) {
 }
 
 getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint, selectedPeriod, correctionsArt) {
-
-	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod)
+  
+  # query for approved activities
+  print(paste("start activity query", Sys.time()))
+  mongoConnection  <- mongo(collection = "activity",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
+  
+  act <- mongoConnection$aggregate(sprintf('[
+	    {"$match": {
+	        "projectActivityId" : %s,
+	        "verificationStatus" : "approved"
+	    }}, 
+	    {"$project": {
+	        "activityId":1
+	    }}
+	]', paste0('"', projectActivityId, '"')),
+  options = '{"allowDiskUse":true}',
+  iterate = TRUE
+  )
+  
+  nbElt <- 0
+  aActivities <- array()
+  
+  while(!is.null(output <- act$one())){
+    
+    nbElt <- nbElt +1
+    
+    aActivities[nbElt] <- output$activityId
+  }
+  
+  activities <-  paste('"', aActivities, '"', sep = "", collapse = ", ")
+  print(paste("end activity query", Sys.time()))
+  
+  # queries of "output" collection
+	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
 #write.csv(minus1, file = 'minus.csv', row.names = FALSE)
-	zeros <- getTabZeroMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod)
+	zeros <- getTabZeroMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
 #write.csv(zeros, file = 'zeros.csv', row.names = FALSE)
 
-	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod)
+	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
 
 	stdcount <- applySpecificCorrections(stdcount, correctionsArt)
 

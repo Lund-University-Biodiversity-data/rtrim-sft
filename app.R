@@ -113,8 +113,8 @@ ui <- fluidPage(theme = 'flatly',
                                                        Vinterpunktrutter =  'totalvinter_pkt',
                                                        #`Sjöfågeltaxering Vår` = 'totalvatmark',
                                                        `IWC Januari` = 'total_iwc_januari',
-                                                       `IWC September` = 'total_iwc_september'#,
-                                                       #`Miscellaneous system` = 'misc_census'
+                                                       `IWC September` = 'total_iwc_september',
+                                                       `Miscellaneous system` = 'misc_census'
                                                        ),
                                         selected = 'totalstandard', inline = FALSE, width = NULL),
                            conditionalPanel(condition = 'input.tabsel == "totalstandard"',
@@ -130,6 +130,13 @@ ui <- fluidPage(theme = 'flatly',
                                                                               `Period 4`= 4,
                                                                               `Period 5`= 5),
                                                                selected = 3, inline = TRUE)
+                                            ),
+                           conditionalPanel(condition = 'input.tabsel == "misc_census"',
+                                            p("Please make sure your data is in the required format. You can find a template below."),
+                                            downloadLink("misc_template", "Download excel template"),
+                                            fileInput("misc_data", "Choose CSV, XLSX or XLS file", accept = c(".csv", ".xlsx", ".xls")),
+                                            verbatimTextOutput("misc_data_contents"),
+                                            tableOutput("contents")
                                             ),
                            hr(),
                            withSpinner(uiOutput('yrSlider')),
@@ -284,7 +291,8 @@ ui <- fluidPage(theme = 'flatly',
                                                                choices = list(`totalstandard`= "totalstandard",
                                                                               `totalsommar_pkt`= "totalsommar_pkt",
                                                                               `totalvinter_pkt`= "totalvinter_pkt",
-                                                                              `totalvatmark`= "totalvatmark"),
+                                                                              #`totalvatmark`= "totalvatmark"),
+                                                                              `miscellaneous system` = "misc_census"),
                                                                selected = "totalstandard", inline = TRUE),
                            hr(),
                            p('Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter.'),
@@ -395,70 +403,107 @@ server <- function(input, output, session) {
     }
 
     if (input$databasechoice == "mongodb") {
-
-      linepoint <- ""
-      selectedPeriod <- ""
-
-      if (input$tabsel == "totalstandard") {
-        projectId <- project_id_std
-        projectActivityId <- project_activity_id_std
-
-        if (input$linepoint) {
-          linepoint <- "line"
-        }
-        else {
-          linepoint <- "point" 
-        }
-      }
-      else if (input$tabsel == "total_iwc_januari") {
-        projectId <- project_id_iwc
-        projectActivityId <- project_activity_id_iwc
-        selectedPeriod <- '"Januari"'
-      }
-      else if (input$tabsel == "total_iwc_september") {
-        projectId <- project_id_iwc
-        projectActivityId <- project_activity_id_iwc
-
-        selectedPeriod <- '"September"'
-      }
-      else if (input$tabsel == "totalsommar_pkt") {
-        projectId <- project_id_punkt
-        projectActivityId <- project_activity_id_summer
-      }
-      else if (input$tabsel == "totalvinter_pkt") {
-        projectId <- project_id_punkt
-        projectActivityId <- project_activity_id_winter
-
-        selectedPeriod <- paste0('"', paste0(input$specper, collapse = '","'), '"')
-
-      }
-
-
-      rcdat <<- getSitesMongo(projectId)
-
-      sitesMatchMongo <- getMatchSitesMongo(projectId)
-
-      #regStdat <<- getBiotopSites(pool)
-      regStdat <<- getBiotopSitesMongo(projectId)
-
-      print(Sys.time())
       
+      if (input$tabsel == "misc_census") {
+        
+        # select time period by excluding rows of years > or < than selected period
+        excl <- c()
+        miscData2 <- miscData
+        for (ob in 1:nrow(miscData)) {
+          if (miscData$yr[ob] < input$selyrs[1] || miscData$yr[ob] > input$selyrs[2]) {
+            excl <- c(excl, ob)
+          }
+        }
+        if (length(excl > 0)) {
+          miscData2 <- miscData2[-excl,]
+        }
+        
+        # apply species specific corrections
+        # need columns "count" and "species"
+        names(miscData2) <- c("extra", "site", "time", "species", "count")
+        miscData3 <- applySpecificCorrections(miscData2, correctionsArt)
+        
+        # select species
+        excl <- c()
+        miscData4 <- miscData3
+        for (ob in 1:nrow(miscData3)) {
+          if (!as.integer(miscData3$species[ob]) %in% specart()) { 
+            excl <- c(excl, ob)
+          }
+        }
+        if (length(excl > 0)) {
+          miscData4 <- miscData4[-excl,]
+        }
 
-      # get matching species
-      #speciesMatch <- getMatchSpecies(poolParams, specart())
-      #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
-      speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, specart())
-
-      dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
-
-      #output$downloadData <- downloadHandler(
-      #  content = function(file) {
-      #    write.csv(dataMerge, file = paste0('extract/', input$filenameDat, '_', "totalstd", '_', gsub('[ :]', '_', Sys.time()), '.csv'),
-      #      row.names = FALSE)
-      #  }
-      #)
-
-      exportSaveData(dataMerge, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
+        # export and save data
+        exportSaveData(miscData4, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
+      }
+      else {
+  
+        linepoint <- ""
+        selectedPeriod <- ""
+  
+        if (input$tabsel == "totalstandard") {
+          projectId <- project_id_std
+          projectActivityId <- project_activity_id_std
+  
+          if (input$linepoint) {
+            linepoint <- "line"
+          }
+          else {
+            linepoint <- "point" 
+          }
+        }
+        else if (input$tabsel == "total_iwc_januari") {
+          projectId <- project_id_iwc
+          projectActivityId <- project_activity_id_iwc
+          selectedPeriod <- '"Januari"'
+        }
+        else if (input$tabsel == "total_iwc_september") {
+          projectId <- project_id_iwc
+          projectActivityId <- project_activity_id_iwc
+  
+          selectedPeriod <- '"September"'
+        }
+        else if (input$tabsel == "totalsommar_pkt") {
+          projectId <- project_id_punkt
+          projectActivityId <- project_activity_id_summer
+        }
+        else if (input$tabsel == "totalvinter_pkt") {
+          projectId <- project_id_punkt
+          projectActivityId <- project_activity_id_winter
+  
+          selectedPeriod <- paste0('"', paste0(input$specper, collapse = '","'), '"')
+  
+        }
+  
+  
+        rcdat <<- getSitesMongo(projectId)
+  
+        sitesMatchMongo <- getMatchSitesMongo(projectId)
+  
+        #regStdat <<- getBiotopSites(pool)
+        regStdat <<- getBiotopSitesMongo(projectId)
+  
+        print(Sys.time())
+        
+  
+        # get matching species
+        #speciesMatch <- getMatchSpecies(poolParams, specart())
+        #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
+        speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, specart())
+  
+        dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
+  
+        #output$downloadData <- downloadHandler(
+        #  content = function(file) {
+        #    write.csv(dataMerge, file = paste0('extract/', input$filenameDat, '_', "totalstd", '_', gsub('[ :]', '_', Sys.time()), '.csv'),
+        #      row.names = FALSE)
+        #  }
+        #)
+  
+        exportSaveData(dataMerge, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
+      }
     }
     else {
 
@@ -540,18 +585,58 @@ server <- function(input, output, session) {
   })
 
 
+  # provide excel template for misc census data
+  output$misc_template <- downloadHandler(
+    filename = "data_upload_template.xlsx",
+    content = function(file) {
+      template <- read.csv("data_upload_template.csv", header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
+      write_xlsx(template, file)
+    }
+  )
+  
+  # read data file uploaded by user 
+  output$misc_data_contents <- renderPrint({print(input$misc_data)})
+  
+  output$contents <- renderTable({
+    file <- input$misc_data
+    req(file)
+    
+    ext <- tools::file_ext(file$datapath)
+    
+    if (ext == "csv") {
+      miscData <<- read.csv(file$datapath, header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
+    }
+    else if (ext == "xlsx" | ext == "xls") { # look up excel file extensions
+      miscData <<- read_excel(file$datapath, col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
+    }
+    else {
+      print("ERROR: Please upload a csv file or an excel file")
+    }
+    
+    print(miscData)
+  })
+  
+  
   output$resultGenerateSpecies <- renderPrint({
     getspecies()})
 
 
-
-  output$yrSlider <- renderUI({
-    queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
-              from %s", input$tabsel)
-    yrs <- dbGetQuery(pool, queryyr)
-    sliderInput(inputId = 'selyrs', label = 'Set years',
-                min = yrs$minyr, max = yrs$maxyr, value = c(2017, yrs$maxyr),
-                step = 1, sep = NULL)
+  observe({input$misc_data
+    output$yrSlider <- renderUI({
+      if (input$tabsel == "misc_census") {
+          sliderInput(inputId = 'selyrs', label = 'Set years',
+                    min = min(miscData$yr), max = max(miscData$yr), value = c(min(miscData$yr), max(miscData$yr)),
+                    step = 1, sep = NULL)
+      }
+      else {
+        queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
+                  from %s", input$tabsel)
+        yrs <- dbGetQuery(pool, queryyr)
+        sliderInput(inputId = 'selyrs', label = 'Set years',
+                    min = yrs$minyr, max = yrs$maxyr, value = c(2017, yrs$maxyr),
+                    step = 1, sep = NULL)
+      }
+    })
   })
 
   output$yrSliderAnalyze <- renderUI({
@@ -567,41 +652,50 @@ server <- function(input, output, session) {
   })
     
   output$specCheckbox <- renderUI({
-    if (input$tabsel == "totalstandard") {
-      projectId <- project_id_std
-      projectActivityId <- project_activity_id_std
+    if (input$tabsel == "misc_census") {
+      species <- c(as.integer(unique(miscData$art)))
+      species_string <- paste0(species, collapse = ",")
+      spdat <- getSpeciesNames(poolParams, species_string)
+      speclist <- as.list(spdat$art)
+      names(speclist) <- as.list(spdat$arthela)
     }
-    else if (input$tabsel == "totalsommar_pkt") {
-      projectId <- project_id_punkt
-      projectActivityId <- project_activity_id_summer
-    } 
-    else if (input$tabsel == "totalvinter_pkt") {
-      projectId <- project_id_punkt
-      projectActivityId <- project_activity_id_winter
-    } 
-    else if (input$tabsel == "total_iwc_januari" || input$tabsel == "total_iwc_september") {
-      projectId <- project_id_iwc
-      projectActivityId <- project_activity_id_iwc
-    } 
-    else if (input$tabsel == "totalvinter_pkt") { # what is this else if?
-      projectId <- project_id_punkt
-      projectActivityId <- project_activity_id_iwc
-    } 
-
-    specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
-    
-    nbSp <- nrow(specsSN)
-
-    vSpecies <- vector()
-    for (iSp  in 1:nbSp) {
-      vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
+    else {
+      if (input$tabsel == "totalstandard") {
+        projectId <- project_id_std
+        projectActivityId <- project_activity_id_std
+      }
+      else if (input$tabsel == "totalsommar_pkt") {
+        projectId <- project_id_punkt
+        projectActivityId <- project_activity_id_summer
+      } 
+      else if (input$tabsel == "totalvinter_pkt") {
+        projectId <- project_id_punkt
+        projectActivityId <- project_activity_id_winter
+      } 
+      else if (input$tabsel == "total_iwc_januari" || input$tabsel == "total_iwc_september") {
+        projectId <- project_id_iwc
+        projectActivityId <- project_activity_id_iwc
+      } 
+      else if (input$tabsel == "totalvinter_pkt") { # what is this else if?
+        projectId <- project_id_punkt
+        projectActivityId <- project_activity_id_iwc
+      } 
+  
+      specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
+      
+      nbSp <- nrow(specsSN)
+  
+      vSpecies <- vector()
+      for (iSp  in 1:nbSp) {
+        vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
+      }
+      vSpecies <- sort(vSpecies)
+  
+      specnames <- spdat$arthela[match(vSpecies,spdat$art)]
+      
+      speclist <- as.list(vSpecies)
+      names(speclist) <- specnames
     }
-    vSpecies <- sort(vSpecies)
-
-    specnames <- spdat$arthela[match(vSpecies,spdat$art)]
-    
-    speclist <- as.list(vSpecies)
-    names(speclist) <- specnames
     
     tags$div(tags$div(strong(p("Select species"))),
              tags$div(align = 'left',

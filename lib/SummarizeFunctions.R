@@ -21,6 +21,9 @@ DoSummarizeResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NUL
 
   reslist <- lapply(files2summarize, function(x) {
     f <- findlatestFile(folder=path_project_extract, filename = paste0(x, '_'), dateform = '%Y-%m-%d_%H_%M_%S')
+    shiny::validate(
+      need(length(f) > 0, "No files were found. Did you save your analysis as a .rdata file? Make sure to check '.rdata-file' in tab 'Analyze data'.")
+    )
     load(paste0(path_project_extract,f))
     return(output)
   })

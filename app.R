@@ -624,6 +624,9 @@ server <- function(input, output, session) {
   observe({input$misc_data
     output$yrSlider <- renderUI({
       if (input$tabsel == "misc_census") {
+          shiny::validate(
+            need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
+          )
           sliderInput(inputId = 'selyrs', label = 'Set years',
                     min = min(miscData$yr), max = max(miscData$yr), value = c(min(miscData$yr), max(miscData$yr)),
                     step = 1, sep = NULL)

@@ -786,6 +786,10 @@ server <- function(input, output, session) {
   }, height = function() {
     nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
     px <- session$clientData$output_plot_width*nr/3
+    # output helpful error message if no valid input for plot width given
+    shiny::validate(
+      need(175 < px & 2000 > px, "The given value is either too small or too large.")
+    )
     return(px)
   }
   )
@@ -794,6 +798,11 @@ server <- function(input, output, session) {
   plotWidth <- reactive(input$displaysize)
   # render it
   output$plotResultsDisplay <- renderUI({
+    # output helpful error message if no data available to be displayed
+    worked <- sapply(resultout(), function(x) inherits(x$value,'trim'))
+    shiny::validate(
+      need(TRUE %in% worked, "No data to be displayed.")
+    )
     plotOutput("plot", width = plotWidth())
   })
 

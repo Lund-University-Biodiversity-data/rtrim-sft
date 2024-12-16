@@ -632,6 +632,10 @@ server <- function(input, output, session) {
 
     vSpecies <- vector()
     for (iSp  in 1:nbSp) {
+      # check if species name exists in both objects. If not, print validation error
+      shiny::validate(
+        need(str_trim(specsSN$name[iSp]) %in% attributes(speciesMatch)$names, paste0("ERROR in retrieving the species items. This item can't be found in the lists module: ", specsSN$name[iSp]))
+      )
       vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
     }
     vSpecies <- sort(vSpecies)

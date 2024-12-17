@@ -7,3 +7,4 @@
 *.rdata
 *.csv
 lib/config.R
+!data_upload_template.xlsx

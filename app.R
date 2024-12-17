@@ -251,12 +251,25 @@ ui <- fluidPage(theme = 'flatly',
                            conditionalPanel(condition = 'input.tabsel == "total_iwc_januari" || input.tabsel == "total_iwc_september"',
                                             fluidRow(column(4,
                                                             radioButtons('specrtIWCAnalyze', label = 'Select sites to include',
-                                                                         choices = list(`All availble sites` = 'all',
+                                                                         choices = list(`All available sites` = 'all',
                                                                                         `Coasts only (ki=K)` = 'coast',
                                                                                         `Inland only (ki=I)` = 'inland',
                                                                                         `Eastern coastal (ev=E & ki=K)` = 'east',
                                                                                         `Western coastal (ev=V & ki=K)` = 'west'),
                                                                          selected = 'all'))
+                                            )
+                           ),
+                           conditionalPanel(condition = 'input.tabsel == "misc_census"',
+                                            fluidRow(column(4,
+                                                            radioButtons('specrtMiscAnalyze', label = 'Select sites to include',
+                                                                         choices = list(`All available sites` = 'all',
+                                                                                        `Filter by 'extra'` = 'extra'
+                                                                         ),
+                                                                         selected = 'all')),
+                                                     column(8,
+                                                            conditionalPanel(condition = 'input.specrtMiscAnalyze == "extra"',
+                                                                             uiOutput('extraCheckboxAnalyze'))
+                                                     )
                                             )
                            ),
                            hr(),
@@ -385,6 +398,13 @@ server <- function(input, output, session) {
            inland = regIWCdat$site[regIWCdat$ki=='I'],
            east = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='E'],
            west = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='V'])
+  })
+  
+  # spatially filter misc data for analysis
+  specrouteMiscAnalyze <- reactive({
+    switch(input$specrtMiscAnalyze,
+           all = data()$site,
+           extra = data()$site[data()$extra%in%input$extraspecrtAnalyze])
   })
   
   data <- eventReactive(input$sendquery,{
@@ -533,6 +553,8 @@ server <- function(input, output, session) {
       rix <- dat$site%in%specrouteAnalyze()
     } else if (input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
       rix <- dat$site%in%specrouteIWCAnalyze()
+    } else if (input$tabsel=='misc_census') {
+      rix <- dat$site%in%specrouteMiscAnalyze()
     } else {
       rix <- !logical(nrow(dat))
     }
@@ -589,7 +611,7 @@ server <- function(input, output, session) {
   output$misc_template <- downloadHandler(
     filename = "data_upload_template.xlsx",
     content = function(file) {
-      template <- read.csv("data_upload_template.csv", header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
+      template <- read_xlsx("data_upload_template.xlsx", col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
       write_xlsx(template, file)
     }
   )
@@ -613,7 +635,7 @@ server <- function(input, output, session) {
       print("ERROR: Please upload a csv file or an excel file")
     }
     
-    print(miscData)
+    print(head(miscData))
   })
   
   
@@ -783,6 +805,21 @@ server <- function(input, output, session) {
              )
     )
   })
+  
+  # filter for misc census
+  output$extraCheckboxAnalyze <- renderUI({
+    extras <- sort(unique(data()$extra))
+    extralist <- as.list(extras)
+    tags$div(tags$div(strong(p("Select"))),
+             tags$div(align = 'left',
+                      class = 'multicol8',
+                      checkboxGroupInput(inputId = 'extraspecrtAnalyze', label = NULL,
+                                         choices = extralist,
+                                         selected = NULL)
+             )
+    )
+  })
+
   
   # output$testtext <- renderText({
   #   as.character('od'%in%input$trimset)})

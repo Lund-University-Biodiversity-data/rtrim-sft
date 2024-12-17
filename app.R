@@ -413,6 +413,11 @@ server <- function(input, output, session) {
   })
   
   data <- eventReactive(input$sendquery,{
+  
+    # error message in case no species were selected
+    shiny::validate(
+      need(length(specart()) > 0, "Please select at least one species.")
+    )
 
     correctionsArt <- data.frame(FALSE, FALSE, FALSE)
     colnames(correctionsArt) <- c("s043", "s242", "s248")

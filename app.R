@@ -512,6 +512,11 @@ server <- function(input, output, session) {
   })
   
   resultout <- eventReactive(input$sendanalysis, {
+    
+    # error message in case no species were selected
+    shiny::validate(
+      need(length(specartAnalyze()) > 0, "Please select at least one species.")
+    )
 
     print(paste("start analysis ", Sys.time()))
 
@@ -535,6 +540,10 @@ server <- function(input, output, session) {
       rix <- !logical(nrow(dat))
     }
     dat <- subset(dat, tix & rix)
+    # error message in case the subset contains no data
+    shiny::validate(
+      need(nrow(dat) > 0, "There was no data found that matches your selection.")
+    )
     dat2 <<- dat
     spartA <<- specartAnalyze()
     spAix <- specartAnalyze()%in%as.integer(unique(dat$species))

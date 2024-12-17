@@ -788,7 +788,7 @@ server <- function(input, output, session) {
     px <- session$clientData$output_plot_width*nr/3
     # output helpful error message if no valid input for plot width given
     shiny::validate(
-      need(175 < px & 2000 > px, "The given value is either too small or too large.")
+      need(175 < px & 2000 > px, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
     )
     return(px)
   }

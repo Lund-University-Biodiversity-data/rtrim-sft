@@ -466,6 +466,11 @@ server <- function(input, output, session) {
       else if (input$tabsel == "totalvinter_pkt") {
         projectId <- project_id_punkt
         projectActivityId <- project_activity_id_winter
+        
+        # error message in case no period was selected
+        shiny::validate(
+          need(length(input$specper) > 0, "Please select a monitoring period.")
+        )
 
         selectedPeriod <- paste0('"', paste0(input$specper, collapse = '","'), '"')
 
@@ -798,12 +803,35 @@ server <- function(input, output, session) {
     byr <- ifelse(isolate(input$selyrsAnalyze[1])>1998, isolate(input$selyrsAnalyze[1]), 1998) 
     indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0(path_project_extract,input$filenamepdf, '.pdf'))
   }, height = function() {
-    nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
-    px <- session$clientData$output_plot_width*nr/3
-    # output helpful error message if no valid input for plot width given
-    shiny::validate(
-      need(175 < px & 2000 > px, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
-    )
+    n_plots <- sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))
+    # number of rows
+    nr <- ceiling(n_plots/3)
+    # account for case of having less than 3 plots to avoid distortion of plots
+    #px <- session$clientData$output_plot_width*nr/3
+    if (n_plots < 4) {
+      px <- session$clientData$output_plot_width*nr/n_plots
+    } else {
+      px <- session$clientData$output_plot_width*nr/3
+    }
+    
+    # output helpful error message if input for plot width given is out of range
+    if (n_plots == 1) {
+      w <- session$clientData$output_plot_width*1
+      shiny::validate(
+        need(200 < w & 1500 > w, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
+      )
+    } else if (n_plots == 2) {
+      w <- session$clientData$output_plot_width*2
+      shiny::validate(
+        need(540 < w & 4000 > w, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
+      )
+    } else {
+      w <- session$clientData$output_plot_width*3
+      shiny::validate(
+      need(800 < w & 6000 > w, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
+      )
+    }
+
     return(px)
   }
   )

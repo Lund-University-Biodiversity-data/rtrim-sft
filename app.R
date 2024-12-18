@@ -568,6 +568,15 @@ server <- function(input, output, session) {
 
 
   summarizeRt <- eventReactive(input$sendquerysumm, {
+    
+    # error message in case no monitoring scheme was selected
+    shiny::validate(
+      need(length(input$tableSumm) > 0, "ERROR: Please select at least one monitoring scheme.")
+    )
+    # error message in case entered base year is out of range of the data
+    shiny::validate(
+      need(input$yearBaseSumm %in% range(data()$time), paste0("ERROR: Base year must be in range: ", range(data()$time)[1], " - ", range(data()$time)[2]))
+    )
 
     useShorterPeriods <- input$shorterPeriodSumm
     tables <- input$tableSumm

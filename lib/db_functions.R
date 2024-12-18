@@ -1033,6 +1033,10 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 	result <- data.frame(vKartaMatch, vArtMatch, vYear, vCount)
 	colnames(result) <- c("site", "species", "time", "count")
 
+	# error message in case no data was found
+	shiny::validate(
+	  need(nrow(result) > 0, "No data found for the specified request.")
+	)
 	#resRemoveDuplicate=unique(result)
 	# aggregate by getting the maximum value in case of doublon
 	# (works as well for iwc when boat/land can be done the same year)

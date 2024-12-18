@@ -413,6 +413,11 @@ server <- function(input, output, session) {
   })
   
   data <- eventReactive(input$sendquery,{
+  
+    # error message in case no species were selected
+    shiny::validate(
+      need(length(specart()) > 0, "Please select at least one species.")
+    )
 
     correctionsArt <- data.frame(FALSE, FALSE, FALSE)
     colnames(correctionsArt) <- c("s043", "s242", "s248")
@@ -461,6 +466,11 @@ server <- function(input, output, session) {
       else if (input$tabsel == "totalvinter_pkt") {
         projectId <- project_id_punkt
         projectActivityId <- project_activity_id_winter
+        
+        # error message in case no period was selected
+        shiny::validate(
+          need(length(input$specper) > 0, "Please select a monitoring period.")
+        )
 
         selectedPeriod <- paste0('"', paste0(input$specper, collapse = '","'), '"')
 
@@ -507,6 +517,11 @@ server <- function(input, output, session) {
   })
   
   resultout <- eventReactive(input$sendanalysis, {
+    
+    # error message in case no species were selected
+    shiny::validate(
+      need(length(specartAnalyze()) > 0, "Please select at least one species.")
+    )
 
     print(paste("start analysis ", Sys.time()))
 
@@ -530,6 +545,10 @@ server <- function(input, output, session) {
       rix <- !logical(nrow(dat))
     }
     dat <- subset(dat, tix & rix)
+    # error message in case the subset contains no data
+    shiny::validate(
+      need(nrow(dat) > 0, "There was no data found that matches your selection.")
+    )
     dat2 <<- dat
     spartA <<- specartAnalyze()
     spAix <- specartAnalyze()%in%as.integer(unique(dat$species))
@@ -549,6 +568,15 @@ server <- function(input, output, session) {
 
 
   summarizeRt <- eventReactive(input$sendquerysumm, {
+    
+    # error message in case no monitoring scheme was selected
+    shiny::validate(
+      need(length(input$tableSumm) > 0, "ERROR: Please select at least one monitoring scheme.")
+    )
+    # error message in case entered base year is out of range of the data
+    shiny::validate(
+      need(input$yearBaseSumm %in% range(data()$time), paste0("ERROR: Base year must be in range: ", range(data()$time)[1], " - ", range(data()$time)[2]))
+    )
 
     useShorterPeriods <- input$shorterPeriodSumm
     tables <- input$tableSumm
@@ -784,8 +812,35 @@ server <- function(input, output, session) {
     byr <- ifelse(isolate(input$selyrsAnalyze[1])>1998, isolate(input$selyrsAnalyze[1]), 1998) 
     indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0(path_project_extract,input$filenamepdf, '.pdf'))
   }, height = function() {
-    nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
-    px <- session$clientData$output_plot_width*nr/3
+    n_plots <- sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))
+    # number of rows
+    nr <- ceiling(n_plots/3)
+    # account for case of having less than 3 plots to avoid distortion of plots
+    #px <- session$clientData$output_plot_width*nr/3
+    if (n_plots < 4) {
+      px <- session$clientData$output_plot_width*nr/n_plots
+    } else {
+      px <- session$clientData$output_plot_width*nr/3
+    }
+    
+    # output helpful error message if input for plot width given is out of range
+    if (n_plots == 1) {
+      w <- session$clientData$output_plot_width*1
+      shiny::validate(
+        need(200 < w & 1500 > w, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
+      )
+    } else if (n_plots == 2) {
+      w <- session$clientData$output_plot_width*2
+      shiny::validate(
+        need(540 < w & 4000 > w, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
+      )
+    } else {
+      w <- session$clientData$output_plot_width*3
+      shiny::validate(
+      need(800 < w & 6000 > w, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
+      )
+    }
+
     return(px)
   }
   )
@@ -794,6 +849,11 @@ server <- function(input, output, session) {
   plotWidth <- reactive(input$displaysize)
   # render it
   output$plotResultsDisplay <- renderUI({
+    # output helpful error message if no data available to be displayed
+    worked <- sapply(resultout(), function(x) inherits(x$value,'trim'))
+    shiny::validate(
+      need(TRUE %in% worked, "No data to be displayed.")
+    )
     plotOutput("plot", width = plotWidth())
   })
 

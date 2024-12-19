@@ -626,7 +626,7 @@ server <- function(input, output, session) {
       projectActivityId <- project_activity_id_iwc
     } 
 
-    specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
+    specsSN <- getUniquesSpeciesFromScheme(projectActivityId)
     
     nbSp <- nrow(specsSN)
 

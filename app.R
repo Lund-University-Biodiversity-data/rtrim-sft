@@ -616,6 +616,12 @@ server <- function(input, output, session) {
     updateTextInput(inputId = 'filenameResSumm', value = input$filenameRes)
   })
   
+  # update preselected monitoring scheme in tab 'Summarize results' if different scheme is selected in tab 'Get data'
+  observe({
+    input$tabsel
+    updateCheckboxGroupInput(inputId = 'tableSumm', selected = input$tabsel)
+  })
+  
 
   output$yrSlider <- renderUI({
     queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr

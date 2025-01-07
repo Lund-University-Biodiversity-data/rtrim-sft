@@ -610,6 +610,12 @@ server <- function(input, output, session) {
     getspecies()})
 
 
+  # update filename in tab 'Summarize results' if filename in tab 'Analyze data' is edited
+  observe({
+    input$filenameRes
+    updateTextInput(inputId = 'filenameResSumm', value = input$filenameRes)
+  })
+  
 
   output$yrSlider <- renderUI({
     queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr

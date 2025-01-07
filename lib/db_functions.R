@@ -547,8 +547,8 @@ getPKTDataMongo <- function (projectId) {
   # replace the codes with the respective county name
   # where no county is assigned to a site, leave empty
   for(iLan in 1:nrow(result)) {
-    if (nchar(result$lan[iLan]) < 3 && nchar(result$lan[iLan]) > 0) {
-      result$lan[iLan] <- counties$name[counties$code == result$lan[iLan]]
+    if (nchar(result$lan[iLan]) > 2) {
+      result$lan[iLan] <- counties$code[counties$name == result$lan[iLan]]
     }
   }
   

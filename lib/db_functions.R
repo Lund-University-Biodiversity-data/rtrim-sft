@@ -514,7 +514,7 @@ getIWCDataMongo <- function (projectId) {
 	return(result)
 }
 
-# get site data from mongoDB for schemes Sommarpunktrutter and Vinterpunktrutter
+# get site data from mongoDB for schemes Sommarpunktrutter and Vinterpunktrutter and Kustfagel
 # based on their project ID in the database
 # output: data frame used for filtering data by county (län)
 getPKTDataMongo <- function (projectId) {

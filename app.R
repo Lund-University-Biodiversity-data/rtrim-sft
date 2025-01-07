@@ -114,9 +114,10 @@ ui <- fluidPage(theme = 'flatly',
                                                        `Brand new mongoDB` = 'mongodb'),
                                         selected = 'mongodb'),
                            radioButtons('tabsel', label = 'Select monitoring scheme',
-                                        choices = list(Standardrutter = 'totalstandard', 
-                                                       Sommarpunktrutter = 'totalsommar_pkt',
-                                                       Vinterpunktrutter =  'totalvinter_pkt',
+                                        choices = list(`Standardrutter` = 'totalstandard', 
+                                                       `Sommarpunktrutter` = 'totalsommar_pkt',
+                                                       `Vinterpunktrutter` =  'totalvinter_pkt',
+                                                       `Kustfagelrutor` = 'totalkustfagel200',
                                                        #`Sjöfågeltaxering Vår` = 'totalvatmark',
                                                        `IWC Januari` = 'total_iwc_januari',
                                                        `IWC September` = 'total_iwc_september'#,
@@ -152,12 +153,12 @@ ui <- fluidPage(theme = 'flatly',
                            conditionalPanel(condition = 'input.specsp == "ind"',
                                             withSpinner(uiOutput('specCheckbox'))),
                            hr(),
-                           checkboxGroupInput('specifCorrections', label = 'Specific corrections',
-                                        choices = list(#'RödGlada#43 > 30 = 30' = 'fixArt43',
-                                                       'Tallbit#242 > 0 = 0 (1984/1986/1996 only)' = 'fixArt242',
-                                                       'Bergfink#248 > 50000 = 50000' = 'fixArt248'
-                                                ),
-                                        selected = c(), inline = TRUE),
+                           conditionalPanel(condition = 'input.tabsel == "totalvinter_pkt"',
+                                            checkboxGroupInput('specifCorrections', label = 'Specific corrections',
+                                                               choices = list(#'RödGlada#43 > 30 = 30' = 'fixArt43',
+                                                               'Tallbit#242 > 0 = 0 (1984/1986/1996 only)' = 'fixArt242',
+                                                               'Bergfink#248 > 50000 = 50000' = 'fixArt248'),
+                                                               selected = c(), inline = TRUE)),
                            hr(),
                            fluidRow(column(6,
                                            checkboxGroupInput('savedat',
@@ -273,6 +274,27 @@ ui <- fluidPage(theme = 'flatly',
                                                                              uiOutput('lanPKTCheckboxAnalyze')))
                                             )
                            ),
+                           conditionalPanel(condition = 'input.tabsel == "totalkustfagel200"',
+                                            fluidRow(column(4,
+                                                            radioButtons('specrtKustAnalyze', label = 'Select routes to include',
+                                                                         choices = list(`All available routes` = 'all',
+                                                                                        `Counties (län)` = 'lan',
+                                                                                        #`Province (landskap)` = 'lsk',
+                                                                                        `Individual routes` = 'ind'
+                                                                         ),
+                                                                         selected = 'all')),
+                                                     column(8,
+                                                            conditionalPanel(condition = 'input.specrtKustAnalyze == "lan"',
+                                                                             uiOutput('lanKustCheckboxAnalyze'))
+                                                            # conditionalPanel(condition = 'input.specrtKustAnalyze == "lsk"',
+                                                            #                  uiOutput('lskKustCheckboxAnalyze'))
+                                                     )
+                                            ),
+                                            fluidRow(column(12,
+                                                            conditionalPanel(condition = 'input.specrtKustAnalyze == "ind"',
+                                                                             uiOutput('indrtKustCheckboxAnalyze')))
+                                            )
+                           ),
                            hr(),
                            fluidRow(column(8,
                                            checkboxInput('makepdf', label = 'Save graphs as pdf',
@@ -305,6 +327,7 @@ ui <- fluidPage(theme = 'flatly',
                                                                choices = list(`totalstandard`= "totalstandard",
                                                                               `totalsommar_pkt`= "totalsommar_pkt",
                                                                               `totalvinter_pkt`= "totalvinter_pkt",
+                                                                              `Kustfagelrutor` = "totalkustfagel200",
                                                                               #`totalvatmark`= "totalvatmark"),
                                                                               `IWC Januari` = "total_iwc_januari",
                                                                               `IWC September` = "total_iwc_september"),
@@ -412,6 +435,19 @@ server <- function(input, output, session) {
            lan = regPKTdat$site[regPKTdat$lan%in%input$lanspecrtPKTAnalyze])
   })
   
+  # get site data for coastal bird scheme
+  # can use same function as for punktrutter schemes, because same columns required in output and similar structure in db
+  regKustdat <<- getPKTDataMongo(project_id_kust)
+  
+  specrouteKustAnalyze <- reactive({
+    switch(input$specrtKustAnalyze,
+           all = regKustdat$site,
+           lan = regKustdat$site[regKustdat$lan%in%input$lanspecrtKustAnalyze],
+           ind = input$indspecrtKustAnalyze)
+  })
+  
+  
+  # get observed species data
   data <- eventReactive(input$sendquery,{
   
     # error message in case no species were selected
@@ -474,6 +510,10 @@ server <- function(input, output, session) {
 
         selectedPeriod <- paste0('"', paste0(input$specper, collapse = '","'), '"')
 
+      }
+      else if (input$tabsel == "totalkustfagel200") {
+        projectId <- project_id_kust
+        projectActivityId <- project_activity_id_kust
       }
 
 
@@ -540,6 +580,9 @@ server <- function(input, output, session) {
     }
     else if (input$tabsel=='totalvinter_pkt' | input$tabsel=='totalsommar_pkt') {
       rix <- dat$site%in%specroutePKTAnalyze()
+    }
+    else if (input$tabsel == 'totalkustfagel200') {
+      rix <- dat$site%in%specrouteKustAnalyze()
     }
     else {
       rix <- !logical(nrow(dat))
@@ -649,10 +692,14 @@ server <- function(input, output, session) {
       projectId <- project_id_iwc
       projectActivityId <- project_activity_id_iwc
     } 
-    else if (input$tabsel == "totalvinter_pkt") { # what is this else if?
-      projectId <- project_id_punkt
-      projectActivityId <- project_activity_id_iwc
-    } 
+    # else if (input$tabsel == "totalvinter_pkt") { # what is this else if?
+    #   projectId <- project_id_punkt
+    #   projectActivityId <- project_activity_id_iwc
+    # } 
+    else if (input$tabsel == "totalkustfagel200") {
+      projectId <- project_id_kust
+      projectActivityId <- project_activity_id_kust
+    }
 
     specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
     
@@ -778,6 +825,31 @@ server <- function(input, output, session) {
                       class = 'multicol6',
                       checkboxGroupInput(inputId = 'lanspecrtPKTAnalyze', label = NULL,
                                          choices = lanlist,
+                                         selected = NULL)
+             )
+    )
+  })
+  
+  # define outputs for filter checkboxes for kustfagel in tab 'analyze data'
+  output$lanKustCheckboxAnalyze <- renderUI({
+    lans <- sort(unique(regKustdat$lan[nchar(regKustdat$lan) > 0]))
+    lanlist <- as.list(lans)
+    tags$div(tags$div(strong(p("Select county(ies)"))),
+             tags$div(align = 'left',
+                      class = 'multicol6',
+                      checkboxGroupInput(inputId = 'lanspecrtKustAnalyze', label = NULL,
+                                         choices = lanlist,
+                                         selected = NULL)
+             )
+    )
+  })
+  
+  output$indrtKustCheckboxAnalyze <- renderUI({
+    tags$div(tags$div(strong(p("Select route(s)"))),
+             tags$div(align = 'left',
+                      class = 'multicol8',
+                      checkboxGroupInput(inputId = 'indspecrtKustAnalyze', label = NULL,
+                                         choices = as.list(regKustdat$site),
                                          selected = NULL)
              )
     )

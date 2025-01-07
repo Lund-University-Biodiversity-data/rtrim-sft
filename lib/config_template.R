@@ -42,3 +42,6 @@ project_activity_id_summer <<- "xxx-xxx-xxx-xxx"
 
 project_id_iwc <<- "xxx-xxx-xxx-xxx"
 project_activity_id_iwc <<- "xxx-xxx-xxx-xxx"
+
+project_id_kust <<- "xxx-xxx-xxx-xxx"
+project_activity_id_kust <<- "xxx-xxx-xxx-xxx"

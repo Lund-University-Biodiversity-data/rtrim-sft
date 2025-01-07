@@ -802,10 +802,12 @@ ExtractRes <- function(obj, tabell, base = 1998, yrrange){
 
 
 #### MakeXlsFile ####
-MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NULL, specieslanguage = 'SE',
-                        combinations = NULL, single = TRUE, homepage = TRUE){
+MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NULL, specieslanguage = 'SE', homepage = TRUE){
+  
   appOutput <- list()
   nsyst <- unname(sapply(obj[1], function(x) {length(x$Results)}))
+  
+  # if multiple schemes were selected, one combined Figurritning file is created
   if(nsyst>1){
     combinations <- list(c(1:nsyst))
     # if (!is.list(combinations)){
@@ -845,12 +847,14 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       #             file = paste0('Trimcombined_', paste(colnames[cix], collapse = '_'), '_', max(combtab$Yr), '_Figurritning.xlsx'),
       #             sheetName='TRIMCOMBO', row.names=FALSE, showNA=FALSE)
       write_xlsx(list(TRIMCOMBO=combtab[order(combtab$ART),]),
-                  path = paste0(path_project_extract,'Trimcombined_', paste(colnames[cix], collapse = '_'), '_', max(combtab$Yr), '_Figurritning_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx'),
+                  path = paste0(path_project_extract,'Trimcombined_', paste(colnames[cix], collapse = '_'), '_', min(combtab$Yr), '-', max(combtab$Yr), '_Figurritning_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx'),
                   format_headers = TRUE)
       appOutput[[length(appOutput)+1]] <- list(TRIMCOMBO=combtab[order(combtab$ART),])
     }
   } 
-  if (single) {
+  # 'single file' Figurritning will only be created if only 1 scheme was selected
+  # code still allows creation of excel file with several sheets with individual Figurritning tables for more than 1 selected scheme
+  if (nsyst == 1) {
     singles <- list()
     for (i in 1:nsyst){
       singltab <- lapply(specieslist[[i]], function(x){

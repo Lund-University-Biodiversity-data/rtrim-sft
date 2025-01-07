@@ -27,6 +27,9 @@ startyr <- getStartYear(poolParams)
 #startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
 #startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
 
+tabShorts <<- data.frame(table = c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt', 'totalvatmark', 'total_iwc_januari', 'total_iwc_september', 'misc_census'),
+                         short = c('T', 'S', 'V', 'VAT', 'IWCjan', 'IWCsep', 'M'))
+
  ## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
 onStop(function() {
   poolClose(pool)
@@ -298,6 +301,7 @@ ui <- fluidPage(theme = 'flatly',
                   ),
                   tabPanel('Summarize results',
                            hr(),
+                           p('NOTE: This has to be the same filename as used in tab "Analyze data" for all of the monitoring systems you want summaries for.'),
                            textInput('filenameResSumm', label = 'Enter filename:', value = 'trimOutput'),
                            #textInput('yearBaseSumm', label = 'Base year:', value = '2002'),
                            uiOutput('yearBaseSummAuto'),
@@ -307,11 +311,14 @@ ui <- fluidPage(theme = 'flatly',
                                                                choices = list(`totalstandard`= "totalstandard",
                                                                               `totalsommar_pkt`= "totalsommar_pkt",
                                                                               `totalvinter_pkt`= "totalvinter_pkt",
-                                                                              `totalvatmark`= "totalvatmark"),
+                                                                              #`totalvatmark`= "totalvatmark"),
+                                                                              `IWC Januari` = 'total_iwc_januari',
+                                                                              `IWC September` = 'total_iwc_september',
+                                                                              `Miscellaneous system` = 'misc_census'),
                                                                selected = "totalstandard", inline = TRUE),
-                           hr(),
-                           p('Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter.'),
-                           checkboxInput('singleSumm', label = 'Single files', value = TRUE),
+                           # hr(),
+                           # p('Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter.'),
+                           # checkboxInput('singleSumm', label = 'Single files', value = TRUE),
                            hr(),
                            p('Do you want "homepage" files (you will get one for each system)? This is the "overview data" file.'),
                            checkboxInput('homepageSumm', label = 'Homepage files', value = TRUE),
@@ -336,13 +343,13 @@ ui <- fluidPage(theme = 'flatly',
                            hr(),
                            p('Download the generated files:'),
                            fluidRow(column(4,
-                                           downloadButton("downloadComb", "Download combined table")
+                                           downloadButton("downloadComb", "Download combined table (Trimcombined Figurritning)")
                                            ),
                                     column(4,
-                                           downloadButton("downloadSingle", "Download individual table(s)")
+                                           downloadButton("downloadSingle", "Download individual table (Figurritning)")
                                            ),
                                     column(4,
-                                           downloadButton("downloadHomepage", "Download overview table(s)")
+                                           downloadButton("downloadHomepage", "Download overview tables (Tabeller)")
                                            )
                                     ),
                            hr(),
@@ -562,7 +569,7 @@ server <- function(input, output, session) {
       startyr <- NULL
     }
 
-    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, single=input$singleSumm, lang=input$langSumm) 
+    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, lang=input$langSumm) 
 
 
   })
@@ -758,21 +765,21 @@ server <- function(input, output, session) {
   })
   
   output$downloadCSV <- downloadHandler(
-    filename = paste0(input$filenameDat, '_', input$tabsel, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
+    filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
     content = function(file) {
       write.csv(dat2, file, row.names = FALSE)
     }
   )
   
   output$downloadCSV2 <- downloadHandler(
-    filename = paste0(input$filenameDat, '_', input$tabsel, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
+    filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
     content = function(file) {
       write.csv2(dat2, file, row.names = FALSE)
     }
   )
   
   output$downloadRDATA <- downloadHandler(
-    filename = paste0(input$filenameDat, '_', input$tabsel, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
+    filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
     content = function(file) {
       save(dat2, file = file)
     }
@@ -792,7 +799,7 @@ server <- function(input, output, session) {
   })
   
   output$downloadAnalysis <- downloadHandler(
-    filename = paste0(input$filenameRes, '_', input$tabsel, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
+    filename = paste0(input$filenameRes, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
     content = function(file) {
       save(trimOutput, file = file)
     }
@@ -812,7 +819,7 @@ server <- function(input, output, session) {
       if (length(input$tableSumm) > 1) {
         shinyjs::enable("downloadComb")
       }
-      if (input$singleSumm) {
+      if (length(input$tableSumm) == 1) {
         shinyjs::enable("downloadSingle")
       }
       if (input$homepageSumm) {
@@ -823,37 +830,35 @@ server <- function(input, output, session) {
   
   # download file reporting on all selected schemes next to each other
   output$downloadComb <- downloadHandler(
-    filename = paste0('Trimcombined_', input$filenameResSumm, '_Figurritning_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
+    filename = paste0('Trimcombined_', 'Figurritning_', input$filenameResSumm, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
     content = function(file) {
-      #      if (length(input$tableSumm) > 1) {
       write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
-      #      }
     }
   )
   
   # download file reporting on all selected schemes individually
   output$downloadSingle <- downloadHandler(
-    filename = paste0('Trim_', input$filenameResSumm, '_Figurritning_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
+    filename = paste0('Trim_', 'Figurritning_', input$filenameResSumm, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
     content = function(file) {
-      if (length(input$tableSumm) == 1) {
+      # if (length(input$tableSumm) == 1) {
         write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
-      }
-      else if (length(input$tableSumm) > 1) {
-        write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
-      }
+      # }
+      # else if (length(input$tableSumm) > 1) {
+      #   write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
+      # }
     }
   )
   
   # download overview data file on all selected schemes individually
   output$downloadHomepage <- downloadHandler(
-    filename = paste0('Trim_', input$filenameResSumm,'_Tabeller_', gsub('[ :]', '_', round(Sys.time(),0)),'.xlsx'),
+    filename = paste0('Trim_', 'Tabeller_', input$filenameResSumm, '_', gsub('[ :]', '_', round(Sys.time(),0)),'.xlsx'),
     content = function(file) {
-      if (length(input$tableSumm) == 1) {
+      # if (length(input$tableSumm) == 1) {
         write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
-      }
-      else if (length(input$tableSumm) > 1) {
-        write_xlsx(summarizeRt()[[3]], file, format_headers = TRUE)
-      }
+      # }
+      # else if (length(input$tableSumm) > 1) {
+      #   write_xlsx(summarizeRt()[[3]], file, format_headers = TRUE)
+      # }
     }
   )
   

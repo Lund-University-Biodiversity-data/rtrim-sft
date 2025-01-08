@@ -27,8 +27,15 @@ startyr <- getStartYear(poolParams)
 #startyr$Delprogram[startyr$Delprogram=='Standard'] <- 'totalstandard'
 #startyr$Delprogram[startyr$Delprogram=='VinPKT'] <- 'totalvinter_pkt'
 
-tabShorts <<- data.frame(table = c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt', 'totalvatmark', 'total_iwc_januari', 'total_iwc_september', 'misc_census'),
-                         short = c('T', 'S', 'V', 'VAT', 'IWCjan', 'IWCsep', 'M'))
+# data frame to match county (län) codes with the county's full names
+counties <<- data.frame(code = c("AB", "C", "D", "E", "F", "G", "H", "I", "K", "M", "N", "O", "S", "T", "U", "W", "X", "Y", "Z", "AC", "BD"),
+                        name = c("Stockholms län", "Uppsala län", "Södermanlands län", "Östergötlands län", "Jönköpings län", "Kronobergs län",
+                                 "Kalmar län", "Gotlands län", "Blekinge län", "Skåne län", "Hallands län", "Västra Götalands län", "Värmlands län",
+                                 "Örebro län", "Västmanlands län", "Dalarnas län", "Gävleborgs län", "Västernorrlands län", "Jämtlands län", "Västerbottens län", "Norrbottens län"))
+
+# data frame with full names of schemes and their abbreviations
+tabShorts <<- data.frame(table = c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt', 'totalvatmark', 'totalkustfagel200', 'total_iwc_januari', 'total_iwc_september', 'misc_census'),
+                         short = c('T', 'S', 'V', 'VAT', 'K', 'IWCjan', 'IWCsep', 'M'))
 
  ## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
 onStop(function() {

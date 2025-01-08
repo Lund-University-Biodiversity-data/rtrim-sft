@@ -140,17 +140,25 @@ ui <- fluidPage(theme = 'flatly',
                            hr(),
                            withSpinner(uiOutput('yrSlider')),
                            hr(),
-                           radioButtons('specsp', label = 'Select species set',
-                                        choices = list(`All available bird species` = 'all',
+                           fluidRow(column(6,
+                                           radioButtons('specsp', label = 'Select species set',
+                                           choices = list(`All available bird species` = 'all',
                                                        #`All available mammal species` = 'mammals',
                                                        `Farmland Bird Index` = 'FBI',
-                                                       #`Environmental Objective 13` = 'eo13',
-                                                       #`Fredriks urval IWC Januari` = 'iwcjan',
-                                                       `Individual species` = 'ind'
+                                                       `Environmental Objective 13` = 'eo13',
+                                                       `Fredriks urval IWC Januari` = 'iwcjan',
+                                                       `Individual species` = 'ind',
+                                                       `Custom set of species from csv file` = 'custom' 
                                                        ),
-                                        selected = 'all'),
-                           conditionalPanel(condition = 'input.specsp == "ind"',
-                                            withSpinner(uiOutput('specCheckbox'))),
+                                           selected = 'all')),
+                                    column(6,
+                                           conditionalPanel(condition = 'input.specsp == "custom"',
+                                                            p('Please upload a csv file simply listing the art numbers of the species you want to select (only numbers separated by commas, no quotation marks). It can look like this: 1, 2, 3, 4, 5, or like this: 001, 098, 100, 345, 008.'),
+                                                            fileInput("specset", "Choose csv File", accept = ".csv"),
+                                                            verbatimTextOutput("specset_contents"))
+                                           )
+                           ),
+                           withSpinner(uiOutput('specCheckbox')),
                            hr(),
                            checkboxGroupInput('specifCorrections', label = 'Specific corrections',
                                         choices = list(#'RödGlada#43 > 30 = 30' = 'fixArt43',
@@ -210,15 +218,14 @@ ui <- fluidPage(theme = 'flatly',
                                            radioButtons('specspAnalyze', label = 'Select species set',
                                                 choices = list(`All available species` = 'all',
                                                                `Farmland Bird Index` = 'FBI',
-                                                               #`Environmental Objective 13` = 'eo13',
-                                                               #`Fredriks urval IWC Januari` = 'iwcjan',
+                                                               `Environmental Objective 13` = 'eo13',
+                                                               `Fredriks urval IWC Januari` = 'iwcjan',
                                                                `Individual species` = 'ind'),
                                                 selected = 'all')),
                                     column(4,
                                            checkboxInput('addNS', label = 'Add northern/southern/species groups?',
                                                          value = FALSE))),
-                           conditionalPanel(condition = 'input.specspAnalyze == "ind"',
-                                            withSpinner(uiOutput('specCheckboxAnalyze'), proxy.height = '100px')),
+                           withSpinner(uiOutput('specCheckboxAnalyze'), proxy.height = '100px'),
                            hr(),
                            conditionalPanel(condition = 'input.tabsel == "totalstandard"',
                                             fluidRow(column(4,
@@ -356,7 +363,9 @@ server <- function(input, output, session) {
            FBI = c(57, 75, 155, 157, 163, 189, 206, 219, 226, 229, 230, 235, 249, 251, 258),
            eo13 = c(75, 86, 155, 157, 188, 189, 206, 226, 229, 230, 235, 249, 258),
            iwcjan = c(1, 2, 3, 4, 5, 7, 8, 9, 12, 13, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 35, 36, 73),
-           ind = as.integer(input$indspecsp)
+           #ind = as.integer(input$indspecsp)
+           ind = character(0),
+           custom = character(0)
            )
   })
   
@@ -373,7 +382,8 @@ server <- function(input, output, session) {
            FBI = c(75, 155, 157, 163, 189, 206, 219, 226, 229, 230, 235, 249, 251, 258),
            eo13 = c(75, 86, 155, 157, 188, 189, 206, 226, 229, 230, 235, 249, 258),
            iwcjan = c(1, 2, 3, 4, 5, 7, 8, 9, 12, 13, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 35, 36, 73),
-           ind = as.integer(input$indspecspAnalyze)
+           #ind = as.integer(input$indspecspAnalyze)
+           ind = character(0)
            )
   })
   
@@ -416,7 +426,7 @@ server <- function(input, output, session) {
   
     # error message in case no species were selected
     shiny::validate(
-      need(length(specart()) > 0, "Please select at least one species.")
+      need(length(input$indspecsp) > 0, "Please select at least one species.")
     )
 
     correctionsArt <- data.frame(FALSE, FALSE, FALSE)
@@ -490,7 +500,7 @@ server <- function(input, output, session) {
       # get matching species
       #speciesMatch <- getMatchSpecies(poolParams, specart())
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
-      speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, specart())
+      speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, input$indspecsp)
 
       dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
 
@@ -509,7 +519,7 @@ server <- function(input, output, session) {
 
       regStdat <<- getBiotopSites(pool)
 
-      DoQuery(pool = pool, tab = input$tabsel, spec=specart(),
+      DoQuery(pool = pool, tab = input$tabsel, spec=input$indspecsp,
             specper = input$specper, selyrs = input$selyrs, line = input$linepoint,
             savedat = input$savedat, filename = input$filenameDat)
     } 
@@ -520,7 +530,7 @@ server <- function(input, output, session) {
     
     # error message in case no species were selected
     shiny::validate(
-      need(length(specartAnalyze()) > 0, "Please select at least one species.")
+      need(length(input$indspecspAnalyze) > 0, "Please select at least one species.")
     )
 
     print(paste("start analysis ", Sys.time()))
@@ -550,15 +560,15 @@ server <- function(input, output, session) {
       need(nrow(dat) > 0, "There was no data found that matches your selection.")
     )
     dat2 <<- dat
-    spartA <<- specartAnalyze()
-    spAix <- specartAnalyze()%in%as.integer(unique(dat$species))
+    spartA <<- input$indspecspAnalyze
+    spAix <- input$indspecspAnalyze %in% as.integer(unique(dat$species))
     styr <- if(input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
                 NULL
               } else {
                 startyr[startyr$Delprogram==input$tabsel, c('Art', 'StartYear')]
               }
 
-    RunTRIMmodel(dat = dat, modeltype = as.integer(input$modeltype), sp_to_run = specartAnalyze()[spAix],
+    RunTRIMmodel(dat = dat, modeltype = as.integer(input$modeltype), sp_to_run = input$indspecspAnalyze[spAix],
                  odisp = 'od'%in%input$trimset, sercor = 'sc'%in%input$trimset,
                  autodel = 'ad'%in%input$trimset,  speciesdat = spdat,
                  startyr = styr, tabell = input$tabsel,
@@ -666,23 +676,57 @@ server <- function(input, output, session) {
       )
       vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
     }
-    vSpecies <- sort(vSpecies)
 
-    specnames <- spdat$arthela[match(vSpecies,spdat$art)]
+    # get a sorted list of the ranks of the species that exist in both objects
+    specranks <- spdat$rank[match(vSpecies,spdat$art)]
+    specranks <- sort(specranks)
+    speclist <- as.list(specranks)
     
-    speclist <- as.list(vSpecies)
+    # assign the associated Swedish species names to the ranks 
+    specnames <- c()
+    specarts <- c()
+    for (spec in 1:length(speclist)) {
+      rank <- speclist[spec]
+      specnames[spec] <- spdat$arthela[spdat$rank == rank]
+      specarts[spec] <- as.integer(spdat$art[spdat$rank == rank])
+    }
     names(speclist) <- specnames
+    attr(speclist, 'art') <- specarts
     
     tags$div(tags$div(strong(p("Select species"))),
              tags$div(align = 'left',
                       class = 'multicol6',
                       checkboxGroupInput(inputId = 'indspecsp', label = NULL,
-                                         choices = speclist,
-                                         selected = NULL)
+                                         choiceNames = attributes(speclist)$names,
+                                         choiceValues = attr(speclist, 'art'),
+                                         selected = attr(speclist, 'art'))
              )
     )
   })
   
+  # update species selection based on selected preset option
+  observe({
+    input$specsp
+    updateCheckboxGroupInput(inputId = 'indspecsp', selected = specart())
+  })
+  
+  # read in custom species set from uploaded file
+  output$specset_contents <- renderPrint({
+    file <- input$specset
+    req(file)
+    
+    ext <- tools::file_ext(file$datapath)
+    shiny::validate(need(ext == "csv", "Please upload a csv file"))
+    
+    customSpecs <- read.csv(file$datapath, header = FALSE, nrows = 1)
+    vcustomSpecs <- as.vector(as.integer(customSpecs[1,]))
+    
+    updateCheckboxGroupInput(inputId = 'indspecsp', selected = vcustomSpecs)
+    
+    print(vcustomSpecs)
+  })
+  
+  # output species selection in tab 'Analyze data'
   output$specCheckboxAnalyze <- renderUI({
     specs <- sort(unique(data()$species))
     if(input$addNS){
@@ -690,18 +734,38 @@ server <- function(input, output, session) {
                       rangedat$art[rangedat$speciesmain%in%specs],
                       '645'[any(c('243', '244', '245')%in%specs)]))
     }
-    specnames <- spdat$arthela[match(specs, spdat$art)]
-    speclist <- as.list(specs)
+    # get a sorted list of the ranks of the species
+    specranks <- spdat$rank[match(specs,spdat$art)]
+    specranks <- sort(specranks)
+    speclist <- as.list(specranks)
+    
+    # assign the associated Swedish species names and art to the ranks 
+    specnames <- c()
+    specarts <- c()
+    for (spec in 1:length(speclist)) {
+      rank <- speclist[spec]
+      specnames[spec] <- spdat$arthela[spdat$rank == rank]
+      specarts[spec] <- as.integer(spdat$art[spdat$rank == rank])
+    }
     names(speclist) <- specnames
+    attr(speclist, 'art') <- specarts
+    
     tags$div(tags$div(strong(p("Select species"))),
              tags$div(align = 'left',
                       class = 'multicol6',
                       checkboxGroupInput(inputId = 'indspecspAnalyze', label = NULL,
-                                         choices = speclist,
-                                         selected = NULL)
+                                         choiceNames = attributes(speclist)$names,
+                                         choiceValues = attr(speclist, 'art'),
+                                         selected = attr(speclist, 'art'))
              )
     )
   })
+  # update species selection based on selected preset option
+  observe({
+    input$specspAnalyze
+    updateCheckboxGroupInput(inputId = 'indspecspAnalyze', selected = specartAnalyze())
+  })
+  
   
   output$lanCheckboxAnalyze <- renderUI({
     lans <- sort(unique(regStdat$lan[nchar(regStdat$lan) > 0]))

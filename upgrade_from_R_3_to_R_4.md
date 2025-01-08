@@ -81,3 +81,7 @@ install.packages("crosstalk")
 install.packages("yaml")
 install.packages("askpass")
 install.packages("openssl")
+
+
+TO BE TRIED TO AVOID struggling with the dependencies !!
+install.packages("shinyjs", dependencies=TRUE)

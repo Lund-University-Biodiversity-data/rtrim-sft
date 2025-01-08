@@ -802,15 +802,18 @@ ExtractRes <- function(obj, tabell, base = 1998, yrrange){
 
 
 #### MakeXlsFile ####
-MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NULL, specieslanguage = 'SE',
-                        combinations = NULL, single = TRUE, homepage = TRUE){
+MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NULL, specieslanguage = 'SE', homepage = TRUE){
+  
   appOutput <- list()
   nsyst <- unname(sapply(obj[1], function(x) {length(x$Results)}))
-  if(nsyst>1 & !is.null(combinations)){
-    if (!is.list(combinations)){
-      stop('combinations must be a list of numeric vector(s)')
-    }
-    for (c in 1:length(combinations)) {
+  
+  # if multiple schemes were selected, one combined Figurritning file is created
+  if(nsyst>1){
+    combinations <- list(c(1:nsyst))
+    # if (!is.list(combinations)){
+    #   stop('combinations must be a list of numeric vector(s)')
+    # }
+    for (c in 1:length(combinations)) {     # length can only be 1 currently
       cix <- combinations[[c]]
       combtab <- lapply(obj, function(x){
         spname <- switch(specieslanguage,
@@ -844,12 +847,15 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       #             file = paste0('Trimcombined_', paste(colnames[cix], collapse = '_'), '_', max(combtab$Yr), '_Figurritning.xlsx'),
       #             sheetName='TRIMCOMBO', row.names=FALSE, showNA=FALSE)
       write_xlsx(list(TRIMCOMBO=combtab[order(combtab$ART),]),
-                  path = paste0(path_project_extract,'Trimcombined_', paste(colnames[cix], collapse = '_'), '_', max(combtab$Yr), '_Figurritning_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx'),
+                  path = paste0(path_project_extract,'Trimcombined_', paste(colnames[cix], collapse = '_'), '_', min(combtab$Yr), '-', max(combtab$Yr), '_Figurritning_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx'),
                   format_headers = TRUE)
-      appOutput[[length(appOutput)+1]] <- combtab[order(combtab$ART),]
+      appOutput[[length(appOutput)+1]] <- list(TRIMCOMBO=combtab[order(combtab$ART),])
     }
   } 
-  if (single) {
+  # 'single file' Figurritning will only be created if only 1 scheme was selected
+  # code still allows creation of excel file with several sheets with individual Figurritning tables for more than 1 selected scheme
+  if (nsyst == 1) {
+    singles <- list()
     for (i in 1:nsyst){
       singltab <- lapply(specieslist[[i]], function(x){
         spname <- switch(specieslanguage,
@@ -875,17 +881,24 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       singltab <- do.call(rbind, singltab)
       uyrs <- unique(singltab$Yr[apply(singltab[, c('Index', 'Converge', 'ConvergeInfo')], 1, function(a) !all(is.na(a)))])
       # singltab <- subset(singltab, Yr>=min(uyrs) & Yr<=max(uyrs))
-      singltab <- list(subset(singltab, Yr>=min(uyrs) & Yr<=max(uyrs))[order(singltab$ART),])
-      names(singltab) <- paste0('TRIM', tabnames[i])
+      singltab <- subset(singltab, Yr>=min(uyrs) & Yr<=max(uyrs))[order(singltab$ART),]
+      # names(singltab) <- paste0('TRIM', tabnames[i])
       # write.xlsx2(singltab[order(singltab$ART),],
       #             file = paste0('Trim', colnames[i], '_', max(singltab$Yr), '_Figurritning.xlsx'), sheetName=paste0('TRIM', tabnames[i]), row.names=FALSE, showNA=FALSE)
-      write_xlsx(singltab,
-                 path = paste0(path_project_extract,'Trim', colnames[i], '_', min(uyrs), '-', max(uyrs), '_Figurritning_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx'), 
-                 format_headers = TRUE)
-      appOutput[[length(appOutput)+1]] <- singltab
+      # write_xlsx(singltab,
+      #            path = paste0(path_project_extract,'Trim', colnames[i], '_', min(uyrs), '-', max(uyrs), '_Figurritning_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx'), 
+      #            format_headers = TRUE)
+      # appOutput[[length(appOutput)+1]] <- singltab
+      singles[[i]] <- singltab
+      names(singles)[i] <- paste0('TRIM', tabnames[i])
     }
+    write_xlsx(singles,
+               path = paste0(path_project_extract,'Trim', paste(colnames, collapse = '_'), '_', min(uyrs), '-', max(uyrs), '_Figurritning_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx'), 
+               format_headers = TRUE)
+    appOutput[[length(appOutput)+1]] <- singles
   }
   if (homepage) {
+    hptabs <- list()
     for (i in 1:nsyst){
       Index <- lapply(specieslist[[i]],
                       function(x){
@@ -963,14 +976,21 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       Tabell[,apply(Tabell, 2, function(a) all(is.na(a)))] <- NULL
       tabn <- max(gsub('imputed.', '', grep('imputed.', names(Tabell), value = T)))
       names(Tabell) <- gsub('imputed.', '', names(Tabell))
-      fname <- paste0(path_project_extract,'Trim', colnames[i], '_Tabeller_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx')
-      hptabs <- list(TABELL = Tabell, Index = Index, Slopes = Slopes)
+      #hptabs <- list(TABELL = Tabell, Index = Index, Slopes = Slopes)
       # write.xlsx2(Tabell, file = fname, sheetName=paste('TABELL' , tabn), row.names=FALSE, showNA=FALSE)
       # write.xlsx2(Index, file = fname, sheetName="Index", row.names=FALSE, append=TRUE, showNA=FALSE)
       # write.xlsx2(Slopes, file = fname, sheetName="Slopes", row.names=FALSE, append=TRUE, showNA=FALSE)
-      write_xlsx(hptabs, path = fname, format_headers = TRUE)
-      appOutput[[length(appOutput)+1]] <- hptabs
+      # fname <- paste0(path_project_extract,'Trim', colnames[i], '_Tabeller_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx')
+      # write_xlsx(hptabs, path = fname, format_headers = TRUE)
+      # appOutput[[length(appOutput)+1]] <- hptabs
+      hptabs[[(1+3*(i-1))]] <- Tabell
+      hptabs[[(2+3*(i-1))]] <- Index
+      hptabs[[(3+3*(i-1))]] <- Slopes
     }
+    names(hptabs) <- paste0(rep(c('Tabell', 'Index', 'Slopes'), length(colnames)), rep(colnames, each = 3))
+    fname <- paste0(path_project_extract,'Trim', paste(colnames, collapse = '_'), '_Tabeller_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx')
+    write_xlsx(hptabs, path = fname, format_headers = TRUE)
+    appOutput[[length(appOutput)+1]] <- hptabs
   }
   return(appOutput)
 }

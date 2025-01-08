@@ -452,6 +452,8 @@ getBiotopSites <- function(pool) {
              order by karta"
 	regStdat <<- dbGetQuery(pool, queryregSt)
 
+	colnames(regStdat) <- c('internalSiteId', 'namn', 'lsk', 'lan', 'fjall104', 'fjall142')
+
 	return(regStdat)
 
 }

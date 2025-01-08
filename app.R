@@ -114,8 +114,7 @@ ui <- fluidPage(theme = 'flatly',
                   ),
                   tabPanel('Get data', 
                            radioButtons('databasechoice', label = 'Select the database',
-                                        choices = list(
-                                            #`Good old sft database on PSQL` = 'psql',
+                                        choices = list(`Good old sft database on PSQL` = 'psql',
                                                        `Brand new mongoDB` = 'mongodb'),
                                         selected = 'mongodb'),
                            radioButtons('tabsel', label = 'Select monitoring scheme',
@@ -637,7 +636,7 @@ server <- function(input, output, session) {
       projectActivityId <- project_activity_id_iwc
     } 
 
-    specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
+    specsSN <- getUniquesSpeciesFromScheme(projectActivityId)
     
     nbSp <- nrow(specsSN)
 

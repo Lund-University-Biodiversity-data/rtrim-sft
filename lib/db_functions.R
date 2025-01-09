@@ -1155,13 +1155,13 @@ exportSaveData <- function (dataMerge, savedat, filename, tab = "totalstandard")
 		dataMerge <<- dataMerge
 	}
 	if (2%in%savedat){
-		write.csv(dataMerge, file = paste0(path_project_extract, 'mongo_', filename, '_', tab, '_', gsub('[ :]', '_', round(Sys.time(), 0)), '.csv'),	          row.names = FALSE)
+		write.csv(dataMerge, file = paste0('extract/mongo_', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.csv'),	          row.names = FALSE)
 	}
 	if (3%in%savedat){
-		write.csv2(dataMerge, file = paste0(path_project_extract, 'mongo_', filename, '_', tab, '_', gsub('[ :]', '_', round(Sys.time(), 0)), '.csv'),	          row.names = FALSE)
+		write.csv2(dataMerge, file = paste0('extract/mongo_', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.csv'),	          row.names = FALSE)
 	}
 	if (4%in%savedat){
-		save(dataMerge, file = paste0(path_project_extract, 'mongo_', filename, '_', tab, '_', gsub('[ :]', '_', round(Sys.time(), 0)), '.rdata'))
+		save(dataMerge, file = paste0('extract/mongo_', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.rdata'))
 	}
 
 	print(paste("after export :", Sys.time()))

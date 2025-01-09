@@ -6,7 +6,6 @@ library(shinycssloaders)
 library(rtrim)
 library(jsonlite)
 library(mongolite)
-library(shinyjs)
 
 #app_url <<- "http://127.0.0.1:6891"
 

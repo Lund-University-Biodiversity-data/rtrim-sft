@@ -29,13 +29,9 @@ startyr <- getStartYear(poolParams)
 
 # data frame to match county (län) codes with the county's full names
 counties <<- data.frame(code = c("AB", "C", "D", "E", "F", "G", "H", "I", "K", "M", "N", "O", "S", "T", "U", "W", "X", "Y", "Z", "AC", "BD"),
-                        name = c("Stockholms län", "Uppsala län", "Södermanlands län", "Östergötlands län", "Jönköpings län", "Kronobergs län",
-                                 "Kalmar län", "Gotlands län", "Blekinge län", "Skåne län", "Hallands län", "Västra Götalands län", "Värmlands län",
-                                 "Örebro län", "Västmanlands län", "Dalarnas län", "Gävleborgs län", "Västernorrlands län", "Jämtlands län", "Västerbottens län", "Norrbottens län"))
-
-# data frame with full names of schemes and their abbreviations
-tabShorts <<- data.frame(table = c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt', 'totalvatmark', 'totalkustfagel200', 'total_iwc_januari', 'total_iwc_september', 'misc_census'),
-                         short = c('T', 'S', 'V', 'VAT', 'K', 'IWCjan', 'IWCsep', 'M'))
+                       name = c("Stockholms län", "Uppsala län", "Södermanlands län", "Östergötlands län", "Jönköpings län", "Kronobergs län",
+                                "Kalmar län", "Gotlands län", "Blekinge län", "Skåne län", "Hallands län", "Västra Götalands län", "Värmlands län",
+                                "Örebro län", "Västmanlands län", "Dalarnas län", "Gävleborgs län", "Västernorrlands län", "Jämtlands län", "Västerbottens län", "Norrbottens län"))
 
  ## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
 onStop(function() {
@@ -69,7 +65,7 @@ ui <- fluidPage(theme = 'flatly',
                                 column-fill: balanced;
                             }  
                             .checkbox {
-                                margin-top: 0px;
+                                margin-top: 10px;
                                 -webkit-margin-after: 1px;
                                 margin-after: 0px;
                             }
@@ -89,7 +85,6 @@ ui <- fluidPage(theme = 'flatly',
                   ),
                   tags$title("Åkes superTRIMprogram")
                 ),
-                shinyjs::useShinyjs(),
                 titlePanel(title = div(img(style = 'display: inline-block;', src = "fageltaxering-logo2x.png", height = 80 , width = 240),
                                        p(style = 'display: inline-block; margin: auto; width: 60%; text-align: center; font-size: 1.5em;',
                                          'Åkes superTRIMprogram - MongoDB version'))),
@@ -119,8 +114,8 @@ ui <- fluidPage(theme = 'flatly',
                                                        `Brand new mongoDB` = 'mongodb'),
                                         selected = 'mongodb'),
                            radioButtons('tabsel', label = 'Select monitoring scheme',
-                                        choices = list(Standardrutter = 'totalstandard'
-                                                       , Sommarpunktrutter = 'totalsommar_pkt',
+                                        choices = list(Standardrutter = 'totalstandard', 
+                                                       Sommarpunktrutter = 'totalsommar_pkt',
                                                        Vinterpunktrutter =  'totalvinter_pkt',
                                                        #`Sjöfågeltaxering Vår` = 'totalvatmark',
                                                        `IWC Januari` = 'total_iwc_januari',
@@ -179,18 +174,6 @@ ui <- fluidPage(theme = 'flatly',
                                     ),
                            hr(),
                            actionButton("sendquery", "Submit query"),
-                           hr(),
-                           p('Download the generated files:'),
-                           fluidRow(column(4,
-                                           downloadButton("downloadCSV", "Download csv")
-                                           ), 
-                                    column(4,
-                                           downloadButton("downloadCSV2", "Download csv (xls-friendly)")
-                                           ),
-                                    column(4,
-                                           downloadButton("downloadRDATA", "Download rdata")
-                                           ),
-                                    ),
                            hr(),
                            #verbatimTextOutput('testtext'),
                            withSpinner(DT::dataTableOutput("dataTable"), proxy.height = '150px')
@@ -271,22 +254,33 @@ ui <- fluidPage(theme = 'flatly',
                                                                                         `Coasts only (ki=K)` = 'coast',
                                                                                         `Inland only (ki=I)` = 'inland',
                                                                                         `Eastern coastal (ev=E & ki=K)` = 'east',
-                                                                                        `Western coastal (ev=V & ki=K)` = 'west'),
-                                                                         selected = 'all'))
+                                                                                        `Western coastal (ev=V & ki=K)` = 'west',
+                                                                                        `Counties (län)` = 'lan'),
+                                                                         selected = 'all')),
+                                                     column(8,
+                                                            conditionalPanel(condition = 'input.specrtIWCAnalyze == "lan"',
+                                                                             uiOutput('lanIWCCheckboxAnalyze')))
+                                            )
+                           ),
+                           conditionalPanel(condition = 'input.tabsel == "totalvinter_pkt" || input.tabsel == "totalsommar_pkt"',
+                                            fluidRow(column(4,
+                                                            radioButtons('specrtPKTAnalyze', label = 'Select sites to include',
+                                                                         choices = list(`All availble sites` = 'all',
+                                                                                        `Counties (län)` = 'lan'),
+                                                                         selected = 'all')),
+                                                     column(8,
+                                                            conditionalPanel(condition = 'input.specrtPKTAnalyze == "lan"',
+                                                                             uiOutput('lanPKTCheckboxAnalyze')))
                                             )
                            ),
                            hr(),
-                           fluidRow(column(6,
+                           fluidRow(column(8,
                                            checkboxInput('makepdf', label = 'Save graphs as pdf',
                                                          value = TRUE),
                                            textInput('filenamepdf', label = 'Enter filename:', value = 'TrimGrafer')
                                            ),
-                                    column(3,
-                                           actionButton("sendanalysis", "Run analysis")
-                                           ),
-                                    column(3,
-                                           downloadButton("downloadAnalysis", "Download rdata")
-                                           )
+                                    column(4,
+                                           actionButton("sendanalysis", "Run analysis"))
                                     ),
                            #actionButton("sendanalysis", "Run analysis"),
                            withSpinner(verbatimTextOutput('testtext2'), proxy.height = '100px'),
@@ -295,20 +289,13 @@ ui <- fluidPage(theme = 'flatly',
                   tabPanel('Display results',
                            #plotOutput('plot' )
                            hr(),
-                           fluidRow(column(6,
-                                           textInput('displaysize', label = 'Result size (XX%):', value = '50%')
-                                           ),
-                                    column(6,
-                                           downloadButton("downloadPDF", "Download pdf")
-                                           )
-                                    ),
+                           textInput('displaysize', label = 'Result size (XX%):', value = '50%'),
                            hr(),
                            withSpinner(uiOutput("plotResultsDisplay")),
                            hr()
                   ),
                   tabPanel('Summarize results',
                            hr(),
-                           p('NOTE: This has to be the same filename as used in tab "Analyze data" for all of the monitoring systems you want summaries for.'),
                            textInput('filenameResSumm', label = 'Enter filename:', value = 'trimOutput'),
                            #textInput('yearBaseSumm', label = 'Base year:', value = '2002'),
                            uiOutput('yearBaseSummAuto'),
@@ -319,13 +306,12 @@ ui <- fluidPage(theme = 'flatly',
                                                                               `totalsommar_pkt`= "totalsommar_pkt",
                                                                               `totalvinter_pkt`= "totalvinter_pkt",
                                                                               #`totalvatmark`= "totalvatmark"),
-                                                                              `IWC Januari` = 'total_iwc_januari',
-                                                                              `IWC September` = 'total_iwc_september',
-                                                                              `Miscellaneous system` = 'misc_census'),
+                                                                              `IWC Januari` = "total_iwc_januari",
+                                                                              `IWC September` = "total_iwc_september"),
                                                                selected = "totalstandard", inline = TRUE),
-                           # hr(),
-                           # p('Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter.'),
-                           # checkboxInput('singleSumm', label = 'Single files', value = TRUE),
+                           hr(),
+                           p('Do you want single files (trimv201x...) for graph making (each system separately)? For example, do you also want Winter.'),
+                           checkboxInput('singleSumm', label = 'Single files', value = TRUE),
                            hr(),
                            p('Do you want "homepage" files (you will get one for each system)? This is the "overview data" file.'),
                            checkboxInput('homepageSumm', label = 'Homepage files', value = TRUE),
@@ -343,20 +329,8 @@ ui <- fluidPage(theme = 'flatly',
                                            actionButton("sendquerysumm", "Generate excel files")
                                            ),
                                     column(6,
-                                           p('All generated files can be found here:'),
+                                           p('The generated files can be found => .'),
                                            tags$a("Download files folder", href=url_extract, target="_blank", rel="noopener noreferrer")
-                                           )
-                                    ),
-                           hr(),
-                           p('Download the generated files:'),
-                           fluidRow(column(4,
-                                           downloadButton("downloadComb", "Download combined table (Trimcombined Figurritning)")
-                                           ),
-                                    column(4,
-                                           downloadButton("downloadSingle", "Download individual table (Figurritning)")
-                                           ),
-                                    column(4,
-                                           downloadButton("downloadHomepage", "Download overview tables (Tabeller)")
                                            )
                                     ),
                            hr(),
@@ -425,10 +399,25 @@ server <- function(input, output, session) {
            coast = regIWCdat$site[regIWCdat$ki=='K'],
            inland = regIWCdat$site[regIWCdat$ki=='I'],
            east = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='E'],
-           west = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='V'])
+           west = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='V'],
+           lan = regIWCdat$site[regIWCdat$lan%in%input$lanspecrtIWCAnalyze])
+  })
+  
+  # get site data for sommarpunktrutter and vinterpunktrutter
+  regPKTdat <<- getPKTDataMongo(project_id_punkt)
+  
+  specroutePKTAnalyze <- reactive({
+    switch(input$specrtPKTAnalyze,
+           all = regPKTdat$site,
+           lan = regPKTdat$site[regPKTdat$lan%in%input$lanspecrtPKTAnalyze])
   })
   
   data <- eventReactive(input$sendquery,{
+  
+    # error message in case no species were selected
+    shiny::validate(
+      need(length(specart()) > 0, "Please select at least one species.")
+    )
 
     correctionsArt <- data.frame(FALSE, FALSE, FALSE)
     colnames(correctionsArt) <- c("s043", "s242", "s248")
@@ -477,6 +466,11 @@ server <- function(input, output, session) {
       else if (input$tabsel == "totalvinter_pkt") {
         projectId <- project_id_punkt
         projectActivityId <- project_activity_id_winter
+        
+        # error message in case no period was selected
+        shiny::validate(
+          need(length(input$specper) > 0, "Please select a monitoring period.")
+        )
 
         selectedPeriod <- paste0('"', paste0(input$specper, collapse = '","'), '"')
 
@@ -523,6 +517,11 @@ server <- function(input, output, session) {
   })
   
   resultout <- eventReactive(input$sendanalysis, {
+    
+    # error message in case no species were selected
+    shiny::validate(
+      need(length(specartAnalyze()) > 0, "Please select at least one species.")
+    )
 
     print(paste("start analysis ", Sys.time()))
 
@@ -535,12 +534,21 @@ server <- function(input, output, session) {
     tix <- dat$time%in%(input$selyrsAnalyze[1]:input$selyrsAnalyze[2])
     if(input$tabsel=='totalstandard'){
       rix <- dat$site%in%specrouteAnalyze()
-    } else if (input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
+    } 
+    else if (input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
       rix <- dat$site%in%specrouteIWCAnalyze()
-    } else {
+    }
+    else if (input$tabsel=='totalvinter_pkt' | input$tabsel=='totalsommar_pkt') {
+      rix <- dat$site%in%specroutePKTAnalyze()
+    }
+    else {
       rix <- !logical(nrow(dat))
     }
     dat <- subset(dat, tix & rix)
+    # error message in case the subset contains no data
+    shiny::validate(
+      need(nrow(dat) > 0, "There was no data found that matches your selection.")
+    )
     dat2 <<- dat
     spartA <<- specartAnalyze()
     spAix <- specartAnalyze()%in%as.integer(unique(dat$species))
@@ -560,6 +568,15 @@ server <- function(input, output, session) {
 
 
   summarizeRt <- eventReactive(input$sendquerysumm, {
+    
+    # error message in case no monitoring scheme was selected
+    shiny::validate(
+      need(length(input$tableSumm) > 0, "ERROR: Please select at least one monitoring scheme.")
+    )
+    # error message in case entered base year is out of range of the data
+    shiny::validate(
+      need(input$yearBaseSumm %in% range(data()$time), paste0("ERROR: Base year must be in range: ", range(data()$time)[1], " - ", range(data()$time)[2]))
+    )
 
     useShorterPeriods <- input$shorterPeriodSumm
     tables <- input$tableSumm
@@ -576,7 +593,7 @@ server <- function(input, output, session) {
       startyr <- NULL
     }
 
-    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, lang=input$langSumm) 
+    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, single=input$singleSumm, lang=input$langSumm) 
 
 
   })
@@ -593,6 +610,18 @@ server <- function(input, output, session) {
     getspecies()})
 
 
+  # update filename in tab 'Summarize results' if filename in tab 'Analyze data' is edited
+  observe({
+    input$filenameRes
+    updateTextInput(inputId = 'filenameResSumm', value = input$filenameRes)
+  })
+  
+  # update preselected monitoring scheme in tab 'Summarize results' if different scheme is selected in tab 'Get data'
+  observe({
+    input$tabsel
+    updateCheckboxGroupInput(inputId = 'tableSumm', selected = input$tabsel)
+  })
+  
 
   output$yrSlider <- renderUI({
     queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
@@ -637,12 +666,16 @@ server <- function(input, output, session) {
       projectActivityId <- project_activity_id_iwc
     } 
 
-    specsSN <- getUniquesSpeciesFromScheme(projectActivityId, speciesMatch)
+    specsSN <- getUniquesSpeciesFromScheme(projectActivityId)
     
     nbSp <- nrow(specsSN)
 
     vSpecies <- vector()
     for (iSp  in 1:nbSp) {
+      # check if species name exists in both objects. If not, print validation error
+      shiny::validate(
+        need(str_trim(specsSN$name[iSp]) %in% attributes(speciesMatch)$names, paste0("ERROR in retrieving the species items. This item can't be found in the lists module: ", specsSN$name[iSp]))
+      )
       vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
     }
     vSpecies <- sort(vSpecies)
@@ -683,7 +716,7 @@ server <- function(input, output, session) {
   })
   
   output$lanCheckboxAnalyze <- renderUI({
-    lans <- sort(unique(regStdat$lan))
+    lans <- sort(unique(regStdat$lan[nchar(regStdat$lan) > 0]))
     lanlist <- as.list(lans)
     tags$div(tags$div(strong(p("Select county(ies)"))),
              tags$div(align = 'left',
@@ -696,7 +729,7 @@ server <- function(input, output, session) {
   })
   
   output$lskCheckboxAnalyze <- renderUI({
-    lsks <- sort(unique(regStdat$lsk))
+    lsks <- sort(unique(regStdat$lsk[nchar(regStdat$lsk) > 0]))
     lsklist <- as.list(lsks)
     tags$div(tags$div(strong(p("Select province(s)"))),
              tags$div(align = 'left',
@@ -736,6 +769,32 @@ server <- function(input, output, session) {
     )
   })
   
+  output$lanIWCCheckboxAnalyze <- renderUI({
+    lans <- sort(unique(regIWCdat$lan[nchar(regIWCdat$lan) > 0]))
+    lanlist <- as.list(lans)
+    tags$div(tags$div(strong(p("Select county(ies)"))),
+             tags$div(align = 'left',
+                      class = 'multicol8',
+                      checkboxGroupInput(inputId = 'lanspecrtIWCAnalyze', label = NULL,
+                                         choices = lanlist,
+                                         selected = NULL)
+             )
+    )
+  })
+  
+  output$lanPKTCheckboxAnalyze <- renderUI({
+    lans <- sort(unique(regPKTdat$lan[nchar(regPKTdat$lan) > 0]))
+    lanlist <- as.list(lans)
+    tags$div(tags$div(strong(p("Select county(ies)"))),
+             tags$div(align = 'left',
+                      class = 'multicol6',
+                      checkboxGroupInput(inputId = 'lanspecrtPKTAnalyze', label = NULL,
+                                         choices = lanlist,
+                                         selected = NULL)
+             )
+    )
+  })
+  
   # output$testtext <- renderText({
   #   as.character('od'%in%input$trimset)})
   output$testtext2 <- renderPrint({
@@ -754,131 +813,6 @@ server <- function(input, output, session) {
     })
   
 
-  # configure download buttons
-  observe({
-    if (input$sendquery) {
-      Sys.sleep(1)
-      # enable the download buttons
-      if (2 %in% input$savedat) {
-        shinyjs::enable("downloadCSV")
-      }
-      if (3 %in% input$savedat) {
-        shinyjs::enable("downloadCSV2")
-      }
-      if (4 %in% input$savedat) {
-        shinyjs::enable("downloadRDATA")
-      }
-    }
-  })
-  
-  output$downloadCSV <- downloadHandler(
-    filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
-    content = function(file) {
-      write.csv(dat2, file, row.names = FALSE)
-    }
-  )
-  
-  output$downloadCSV2 <- downloadHandler(
-    filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
-    content = function(file) {
-      write.csv2(dat2, file, row.names = FALSE)
-    }
-  )
-  
-  output$downloadRDATA <- downloadHandler(
-    filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
-    content = function(file) {
-      save(dat2, file = file)
-    }
-  )
-  
-  observe({
-    if (input$sendanalysis) {
-      Sys.sleep(1)
-      # enable the download buttons
-      if (2 %in% input$saveresult) {
-        shinyjs::enable("downloadAnalysis")
-      }
-      if (input$makepdf) {
-        shinyjs::enable("downloadPDF")
-      }
-    }
-  })
-  
-  output$downloadAnalysis <- downloadHandler(
-    filename = paste0(input$filenameRes, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
-    content = function(file) {
-      save(trimOutput, file = file)
-    }
-  )
-  
-  output$downloadPDF <- downloadHandler(
-    filename = paste0(input$filenamepdf, '.pdf'),
-    content = function(file) {
-      file.copy(from=paste0(path_project_extract,input$filenamepdf, '.pdf'), to=file)
-    }
-  )
-  
-  observe({
-    if (input$sendquerysumm) {
-      Sys.sleep(1)
-      # enable the download buttons
-      if (length(input$tableSumm) > 1) {
-        shinyjs::enable("downloadComb")
-      }
-      if (length(input$tableSumm) == 1) {
-        shinyjs::enable("downloadSingle")
-      }
-      if (input$homepageSumm) {
-        shinyjs::enable("downloadHomepage")
-      }
-    }
-  })
-  
-  # download file reporting on all selected schemes next to each other
-  output$downloadComb <- downloadHandler(
-    filename = paste0('Trimcombined_', 'Figurritning_', input$filenameResSumm, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
-    content = function(file) {
-      write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
-    }
-  )
-  
-  # download file reporting on all selected schemes individually
-  output$downloadSingle <- downloadHandler(
-    filename = paste0('Trim_', 'Figurritning_', input$filenameResSumm, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
-    content = function(file) {
-      # if (length(input$tableSumm) == 1) {
-        write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
-      # }
-      # else if (length(input$tableSumm) > 1) {
-      #   write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
-      # }
-    }
-  )
-  
-  # download overview data file on all selected schemes individually
-  output$downloadHomepage <- downloadHandler(
-    filename = paste0('Trim_', 'Tabeller_', input$filenameResSumm, '_', gsub('[ :]', '_', round(Sys.time(),0)),'.xlsx'),
-    content = function(file) {
-      # if (length(input$tableSumm) == 1) {
-        write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
-      # }
-      # else if (length(input$tableSumm) > 1) {
-      #   write_xlsx(summarizeRt()[[3]], file, format_headers = TRUE)
-      # }
-    }
-  )
-  
-  shinyjs::disable("downloadCSV")
-  shinyjs::disable("downloadCSV2")
-  shinyjs::disable("downloadRDATA")
-  shinyjs::disable("downloadAnalysis")
-  shinyjs::disable("downloadPDF")
-  shinyjs::disable("downloadComb")
-  shinyjs::disable("downloadSingle")
-  shinyjs::disable("downloadHomepage")
-  
-  
   output$plot <- renderPlot({
     worked <- sapply(resultout(), function(x) inherits(x$value,'trim'))
     restoplot <- resultout()[worked]
@@ -890,8 +824,35 @@ server <- function(input, output, session) {
     byr <- ifelse(isolate(input$selyrsAnalyze[1])>1998, isolate(input$selyrsAnalyze[1]), 1998) 
     indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0(path_project_extract,input$filenamepdf, '.pdf'))
   }, height = function() {
-    nr <- ceiling(sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))/3)
-    px <- session$clientData$output_plot_width*nr/3
+    n_plots <- sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))
+    # number of rows
+    nr <- ceiling(n_plots/3)
+    # account for case of having less than 3 plots to avoid distortion of plots
+    #px <- session$clientData$output_plot_width*nr/3
+    if (n_plots < 4) {
+      px <- session$clientData$output_plot_width*nr/n_plots
+    } else {
+      px <- session$clientData$output_plot_width*nr/3
+    }
+    
+    # output helpful error message if input for plot width given is out of range
+    if (n_plots == 1) {
+      w <- session$clientData$output_plot_width*1
+      shiny::validate(
+        need(200 < w & 1500 > w, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
+      )
+    } else if (n_plots == 2) {
+      w <- session$clientData$output_plot_width*2
+      shiny::validate(
+        need(540 < w & 4000 > w, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
+      )
+    } else {
+      w <- session$clientData$output_plot_width*3
+      shiny::validate(
+      need(800 < w & 6000 > w, "The result cannot be displayed, because the value entered for result size is either too small or too large.")
+      )
+    }
+
     return(px)
   }
   )
@@ -900,6 +861,11 @@ server <- function(input, output, session) {
   plotWidth <- reactive(input$displaysize)
   # render it
   output$plotResultsDisplay <- renderUI({
+    # output helpful error message if no data available to be displayed
+    worked <- sapply(resultout(), function(x) inherits(x$value,'trim'))
+    shiny::validate(
+      need(TRUE %in% worked, "No data to be displayed.")
+    )
     plotOutput("plot", width = plotWidth())
   })
 

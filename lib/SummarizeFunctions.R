@@ -9,10 +9,15 @@ library(writexl)
 
 
 
-DoSummarizeResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NULL, startyr=NULL, homepage=NULL, single=NULL, combinations = NULL, lang=NULL) {
+DoSummarizeResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NULL, startyr=NULL, homepage=NULL, lang=NULL) {
 
-  shortcolumn <- c('T')
-  shorttab <- c('T')
+  shortcolumn <- c()
+  shorttab <- c()
+  
+  for (t in 1:length(tables)) {
+    shortcolumn[t] <- tabShorts$short[tabShorts$table == tables[t]]
+    shorttab[t] <- tabShorts$short[tabShorts$table == tables[t]]
+  }
   
   ## Read in rdata-files with results
   ## Finds and read in the latest file produced for each monitoring system (and called trimOutput-something...)
@@ -76,7 +81,6 @@ DoSummarizeResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NUL
   }
 
 
-  MakeXlsFile(resultout, colnames = shortcolumn, tabnames = shorttab, specieslist = sps_char, specieslanguage = lang,
-              combinations = combinations, single = single, homepage = homepage)
+  MakeXlsFile(resultout, colnames = shortcolumn, tabnames = shorttab, specieslist = sps_char, specieslanguage = lang, homepage = homepage)
 
 }

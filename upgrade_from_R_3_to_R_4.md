@@ -85,3 +85,10 @@ install.packages("openssl")
 
 TO BE TRIED TO AVOID struggling with the dependencies !!
 install.packages("shinyjs", dependencies=TRUE)
+
+
+
+in order to get the original-martin-shiny up and running again, some packages had to be reinstalled as well :
+install.packages("lazyeval", dependencies=TRUE)
+install.packages("DiagrammeR", dependencies=TRUE)
+install.packages("tibble", dependencies=TRUE)

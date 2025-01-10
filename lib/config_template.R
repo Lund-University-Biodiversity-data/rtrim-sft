@@ -7,7 +7,8 @@ library(rtrim)
 library(jsonlite)
 library(mongolite)
 library(shinyjs)
-
+library(leaflet)
+library(sf)
 #app_url <<- "http://127.0.0.1:6891"
 
 

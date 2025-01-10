@@ -247,21 +247,36 @@ ui <- fluidPage(theme = 'flatly',
                                                                                         `Mountains (Fjällen) n=142` = 'fjl142',
                                                                                         `Southern routes (<60 N)` = 'S',
                                                                                         `Northern routes (>60 N)` = 'N',
-                                                                                        `Individual routes` = 'ind'
+                                                                                        `Individual routes` = 'ind',
+                                                                                        `Select on map` = 'karta'
                                                                                         ),
-                                                                         selected = 'all')),
+                                                                         selected = 'all'),
+                                                            conditionalPanel(condition = 'input.specrtAnalyze == "karta"',
+                                                                             p('Define your area of interest by clicking on the map to set the vertices of a polygon. You can turn off the existing point data layers at the top right of the map.
+                                                                               To start over and remove all points click "Clear polygon". When you are done, confirm your selection by clicking "Select routes".'))
+                                                            ),
                                                      column(8,
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "lan"',
                                                                              uiOutput('lanCheckboxAnalyze')),
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "lsk"',
                                                                              uiOutput('lskCheckboxAnalyze')),
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "fjl104" || input.specrtAnalyze == "fjl142" || input.specrtAnalyze == "fjl104_inv" || input.specrtAnalyze == "fjl142_inv"',
-                                                                             uiOutput('fjlCheckboxAnalyze'))
+                                                                             uiOutput('fjlCheckboxAnalyze')),
+                                                            conditionalPanel(condition = 'input.specrtAnalyze == "karta"',
+                                                                             leafletOutput("map"),
+                                                                             fluidRow(column(3,
+                                                                                             actionButton('clearMap', 'Clear polygon')),
+                                                                                      column(3,
+                                                                                             actionButton('selectmap', 'Select routes')),
+                                                                                      column(6,
+                                                                                             withSpinner(verbatimTextOutput('mapsel'), proxy.height = '100px'))
+                                                                                      ))
                                                      )
                                             ),
                                             fluidRow(column(12,
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "ind"',
-                                                                             uiOutput('indrtCheckboxAnalyze')))
+                                                                            uiOutput('indrtCheckboxAnalyze')
+                                                                            ))
                                             )
                            ),
                            conditionalPanel(condition = 'input.tabsel == "total_iwc_januari" || input.tabsel == "total_iwc_september"',
@@ -428,7 +443,9 @@ server <- function(input, output, session) {
            fjl142 = regStdat$internalSiteId[regStdat$fjall142==input$fjlspecrtAnalyze],
            S = regStdat$internalSiteId[regStdat$internalSiteId%in%rcdat$site[rcdat$lat < 60]],
            N = regStdat$internalSiteId[regStdat$internalSiteId%in%rcdat$site[rcdat$lat > 60]],
-           ind = input$indspecrtAnalyze)
+           ind = input$indspecrtAnalyze,
+           karta = regStdat$internalSiteId[regStdat$internalSiteId%in%routeselKarta()]
+           )
   })
   
 
@@ -835,6 +852,77 @@ server <- function(input, output, session) {
                                          selected = NULL)
              )
     )
+  })
+  
+  # map for selection of individual routes/sites
+  output$map <- renderLeaflet({ 
+    leaflet() |> 
+      addTiles() |> 
+      setView(15, 63, zoom = 4) |>
+      addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 5, group = 'all routes') |>
+      addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 5, group = 'routes with observations') |>
+      addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
+      addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
+  }) 
+  
+  # draw polygon on map
+  observe({
+    input$map_click
+    if (input$specrtAnalyze == 'karta' && !is.null(input$map_click)) {
+      print(str(input$map_click))
+      if (!exists('lng') & !exists('lat')) {
+        lng <<- c(input$map_click$lng)
+        lat <<- c(input$map_click$lat)
+        coords <- data.frame(lng, lat)
+        print(coords)
+        proxy <- leafletProxy('map')
+        proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+      }
+      else {
+        lng <<- c(lng, input$map_click$lng)
+        lat <<- c(lat, input$map_click$lat)
+        coords <- data.frame(lng, lat)
+        print(coords)
+        proxy <- leafletProxy('map')
+        proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+        proxy %>% addPolygons(layerId = 'area', data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+      }
+    }
+  })
+  
+  # clear polygon from map
+  observe({
+    input$clearMap
+    proxy <- leafletProxy('map')
+    proxy %>% clearShapes()
+    lng <<- c()
+    lat <<- c()
+  })
+  
+  # select routes based on polygon the user defined
+  routeselKarta <- eventReactive(input$selectmap,{
+    # error message for if no area was defined
+    shiny::validate(
+      need(length(lng) > 2  & length(lat) > 2, 'There are not enough points set on the map to create a polygon.')
+    )
+    # create polygon
+    polyCoords <- c()
+    for (p in 1:length(lng)) {
+      polyCoords <- rbind(polyCoords, c(lng[p], lat[p]))
+    }
+    polyCoords <- rbind(polyCoords, c(lng[1], lat[1]))
+    aoi <- st_polygon(list(polyCoords))
+    # create multipoint object
+    pointcoords <- data.frame(rcdat[, 2:3])
+    routes <- st_multipoint(as.matrix(pointcoords))
+    # use created polygon to select sites
+    routesel <- st_intersection(routes, aoi)
+    sitesel <- rcdat$site[rcdat$lon %in% routesel[,1] & rcdat$lat %in% routesel[,2]]
+  })
+  
+  # give the user feedback about route selection after they clicked the action button
+  output$mapsel <- renderPrint({
+    paste0(length(routeselKarta()), ' routes have been selected.')
   })
   
   # output$testtext <- renderText({

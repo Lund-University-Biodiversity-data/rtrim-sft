@@ -315,11 +315,12 @@ getSitesMongo <- function (projectId) {
 
 	res <- mongoConnection$iterate(
 	  query = sprintf('{"status":"active", "adminProperties.internalSiteId":{"$exists":1}, "projects":%s}', paste0('"', projectId, '"')), 
-	  fields = '{"adminProperties.internalSiteId":1, "extent.geometry.decimalLatitude":1}'
+	  fields = '{"adminProperties.internalSiteId":1, "extent.geometry.decimalLongitude":1, "extent.geometry.decimalLatitude":1}'
 	)
 
 	nbElt <- 0
 	vSite <- vector()
+	vLon <- vector()
 	vLat <- vector()
 
 	while(!is.null(x <- res$one())){
@@ -327,11 +328,13 @@ getSitesMongo <- function (projectId) {
 		
 		vSite[nbElt] <- x$adminProperties$internalSiteId
 		
+		vLon[nbElt] <- x$extent$geometry$decimalLongitude
+		
 		vLat[nbElt] <- x$extent$geometry$decimalLatitude
 	}
 
-	result <- data.frame(vSite, vLat)
-	colnames(result) <- c("site", "lat")
+	result <- data.frame(vSite, vLon, vLat)
+	colnames(result) <- c("site", "lon", "lat")
 
 	return(result)
 }

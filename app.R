@@ -136,6 +136,7 @@ ui <- fluidPage(theme = 'flatly',
                                             downloadLink("misc_template", "Download excel template"),
                                             fileInput("misc_data", "Choose CSV, XLSX or XLS file", accept = c(".csv", ".xlsx", ".xls")),
                                             verbatimTextOutput("misc_data_contents"),
+                                            print('Below you will see the first six rows of the imported data. If you find it has not been recognized correctly, please check the format of your data and try uploading it again.'),
                                             tableOutput("contents")
                                             ),
                            hr(),
@@ -609,9 +610,9 @@ server <- function(input, output, session) {
 
   # provide excel template for misc census data
   output$misc_template <- downloadHandler(
-    filename = "data_upload_template.xlsx",
+    filename = "misc_data_upload_template.xlsx",
     content = function(file) {
-      template <- read_xlsx("data_upload_template.xlsx", col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
+      template <- read_xlsx(paste0(path_project_templates, "misc_data_upload_template.xlsx"), col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
       write_xlsx(template, file)
     }
   )
@@ -628,7 +629,7 @@ server <- function(input, output, session) {
     if (ext == "csv") {
       miscData <<- read.csv(file$datapath, header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
     }
-    else if (ext == "xlsx" | ext == "xls") { # look up excel file extensions
+    else if (ext == "xlsx" | ext == "xls") {
       miscData <<- read_excel(file$datapath, col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
     }
     else {

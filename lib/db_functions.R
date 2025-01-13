@@ -507,7 +507,7 @@ getBiotopSitesMongo <- function (projectId) {
 
 
 getIWCData <- function (pool) {
-	queryregIWC <- "select site, lokalnamn, ki, ev
+	queryregIWC <- "select site, lokalnamn, ki, ev, lan
              from
              iwc_koordinater
              order by site"

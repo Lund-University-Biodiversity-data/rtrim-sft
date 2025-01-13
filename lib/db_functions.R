@@ -1127,24 +1127,33 @@ mergeTabs <- function (minus1, zeros, stdcount) {
 
 getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint, selectedPeriod, correctionsArt) {
   
-  # query of "activity" collection
-  activities <- getApprovedActivities(projectActivityId)
-  # queries of "output" collection
-	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
-#write.csv(minus1, file = 'minus.csv', row.names = FALSE)
-	zeros <- getTabZeroMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
-#write.csv(zeros, file = 'zeros.csv', row.names = FALSE)
-
-	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
-
-	stdcount <- applySpecificCorrections(stdcount, correctionsArt)
-
-	print(paste("before final merge :", Sys.time()))
-
-	dataMerge <- mergeTabs(minus1 = minus1, zeros = zeros, stdcount = stdcount)
-
-	#write.csv(dataMerge, file = 'test_result.csv', row.names = FALSE)
-	print(paste("before return :", Sys.time()))
+  withProgress(message = 'Running query', value = 0, {
+  
+    # query of "activity" collection
+    activities <- getApprovedActivities(projectActivityId)
+    # queries of "output" collection
+  	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
+    #write.csv(minus1, file = 'minus.csv', row.names = FALSE)
+  	incProgress(1/4, detail = paste('step 1 #minus1'))
+  	
+  	zeros <- getTabZeroMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
+    #write.csv(zeros, file = 'zeros.csv', row.names = FALSE)
+  	incProgress(1/4, detail = paste('step 2 #zeros'))
+  
+  	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
+  	incProgress(1/4, detail = paste('step 3 #count'))
+  	
+  	stdcount <- applySpecificCorrections(stdcount, correctionsArt)
+  
+  	print(paste("before final merge :", Sys.time()))
+  
+  	dataMerge <- mergeTabs(minus1 = minus1, zeros = zeros, stdcount = stdcount)
+  	incProgress(1/4, detail = paste('step 4 #merge'))
+  
+  	#write.csv(dataMerge, file = 'test_result.csv', row.names = FALSE)
+  	print(paste("before return :", Sys.time()))
+	
+  })
 
 	return(dataMerge)
 }

@@ -415,9 +415,6 @@ server <- function(input, output, session) {
   })
   
 
-  #regIWCdat <<- getIWCData(pool)
-  regIWCdat <<- getIWCDataMongo(project_id_iwc)
-
   specrouteIWCAnalyze <- reactive({
     switch(input$specrtIWCAnalyze,
            all = regIWCdat$site,
@@ -450,6 +447,8 @@ server <- function(input, output, session) {
       if (input$tabsel == "totalstandard") {
         projectId <- project_id_std
         projectActivityId <- project_activity_id_std
+        
+        regStdat <<- getBiotopSitesMongo(projectId)
 
         if (input$linepoint) {
           linepoint <- "line"
@@ -462,12 +461,16 @@ server <- function(input, output, session) {
         projectId <- project_id_iwc
         projectActivityId <- project_activity_id_iwc
         selectedPeriod <- '"Januari"'
+        
+        regIWCdat <<- getIWCDataMongo(projectId)
       }
       else if (input$tabsel == "total_iwc_september") {
         projectId <- project_id_iwc
         projectActivityId <- project_activity_id_iwc
 
         selectedPeriod <- '"September"'
+        
+        regIWCdat <<- getIWCDataMongo(projectId)
       }
       else if (input$tabsel == "totalsommar_pkt") {
         projectId <- project_id_punkt
@@ -485,9 +488,6 @@ server <- function(input, output, session) {
       rcdat <<- getSitesMongo(projectId)
 
       sitesMatchMongo <- getMatchSitesMongo(projectId)
-
-      #regStdat <<- getBiotopSites(pool)
-      regStdat <<- getBiotopSitesMongo(projectId)
 
       print(Sys.time())
       
@@ -512,7 +512,12 @@ server <- function(input, output, session) {
 
       rcdat <<- getSites(pool)
 
-      regStdat <<- getBiotopSites(pool)
+      if (input$tabsel == "totalstandard") {
+        regStdat <<- getBiotopSites(pool)
+      }
+      else if (input$tabsel == "total_iwc_januari" | input$tabsel == "total_iwc_september") {
+        regIWCdat <<- getIWCData(pool)
+      }
 
       DoQuery(pool = pool, tab = input$tabsel, spec=specart(),
             specper = input$specper, selyrs = input$selyrs, line = input$linepoint,

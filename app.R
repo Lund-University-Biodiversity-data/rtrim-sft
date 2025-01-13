@@ -441,8 +441,6 @@ server <- function(input, output, session) {
            lan = regIWCdat$site[regIWCdat$lan%in%input$lanspecrtIWCAnalyze])
   })
   
-  # get site data for sommarpunktrutter and vinterpunktrutter
-  regPKTdat <<- getPKTDataMongo(project_id_punkt)
   
   specroutePKTAnalyze <- reactive({
     switch(input$specrtPKTAnalyze,
@@ -506,10 +504,14 @@ server <- function(input, output, session) {
       else if (input$tabsel == "totalsommar_pkt") {
         projectId <- project_id_punkt
         projectActivityId <- project_activity_id_summer
+
+        regPKTdat <<- getPKTDataMongo(projectId)
       }
       else if (input$tabsel == "totalvinter_pkt") {
         projectId <- project_id_punkt
         projectActivityId <- project_activity_id_winter
+        
+        regPKTdat <<- getPKTDataMongo(projectId)
         
         # error message in case no period was selected
         shiny::validate(
@@ -554,6 +556,9 @@ server <- function(input, output, session) {
       else if (input$tabsel == "total_iwc_januari" | input$tabsel == "total_iwc_september") {
         regIWCdat <<- getIWCData(pool)
       }
+      else if (input$tabsel == "totalsommar_pkt" | input$tabsel == "totalvinter_pkt") {
+        regPKTdat <<- getPKTData(pool)
+      }
 
       DoQuery(pool = pool, tab = input$tabsel, spec=specart(),
             specper = input$specper, selyrs = input$selyrs, line = input$linepoint,
@@ -576,7 +581,7 @@ server <- function(input, output, session) {
     } else {
       dat <- data()
     }
-    sprtA <<- specrouteIWCAnalyze()
+    
     tix <- dat$time%in%(input$selyrsAnalyze[1]:input$selyrsAnalyze[2])
     if(input$tabsel=='totalstandard'){
       rix <- dat$site%in%specrouteAnalyze()

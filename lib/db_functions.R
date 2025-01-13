@@ -554,6 +554,26 @@ getIWCDataMongo <- function (projectId) {
 	return(result)
 }
 
+# get site data from psql database for punktrutter schemes
+# for use in filtering the data by county (län)
+getPKTData <- function (pool) {
+  queryregPKT <- "select persnr || '_' || rnr as site, ruttnamn as lokalnamn, lan
+                  from
+                  punktrutter
+                  order by site"
+  regPKTdat <<- dbGetQuery(pool, queryregPKT)
+  
+  # replace the county names with the respective codes
+  # where no county is assigned to a site, leave empty
+  for(iLan in 1:nrow(regPKTdat)) {
+    if (nchar(regPKTdat$lan[iLan]) > 2) {
+      regPKTdat$lan[iLan] <- counties$code[counties$name == regPKTdat$lan[iLan]]
+    }
+  }
+  
+  return(regPKTdat)
+}
+
 # get site data from mongoDB for schemes Sommarpunktrutter and Vinterpunktrutter
 # based on their project ID in the database
 # output: data frame used for filtering data by county (län)

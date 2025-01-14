@@ -13,6 +13,7 @@ DoQuery <- function (pool=NULL, tab=NULL, spec=NULL, specper=NULL, selyrs=NULL,
                      totalsommar_pkt = 'ind',
                      totalstandard = ifelse(line, 'lind', 'pkind'),
                      totalvatmark = 'ind',
+                     totalkustfagel200 = 'ind',
                      total_iwc_januari = 'antal',
                      total_iwc_september = 'antal',
                      misc_census = 'ind',
@@ -174,6 +175,40 @@ DoQuery <- function (pool=NULL, tab=NULL, spec=NULL, specper=NULL, selyrs=NULL,
                                             from
                                             %s
                                             where to_number(art, '000') in %s and yr in %s",
+                                            countvar, tab, specsel, yrsel)
+                       ),
+                       totalkustfagel200 = list(
+                         tabminus1 = sprintf("select ro.site, ro.species, yrs.time, -1 as count
+                                           from
+                                           (select distinct tot.ruta as site, tot.art as species
+                                           from
+                                           %s as tot
+                                           where to_number(art, '000') in %s)
+                                           as ro,
+                                           (select distinct tot.yr as time
+                                           from
+                                           %s as tot
+                                           where yr in %s)
+                                           as yrs", tab, specsel, tab, yrsel)
+                         ,
+                         tabzero = sprintf("select vi.site, ro.species, vi.time, 0 as count
+                                         from
+                                         (select tot.ruta as site, tot.yr as time 
+                                         from
+                                         %s as tot
+                                         where art='000' and yr in %s)
+                                         as vi,
+                                         (select distinct tot.ruta as site, tot.art as species
+                                         from
+                                         %s as tot
+                                         where to_number(art, '000') in %s)
+                                         as ro
+                                         where vi.site=ro.site", tab, yrsel, tab, specsel)
+                         ,
+                         tabcount = sprintf("select ruta as site, art as species, yr as time, %s as count
+                                          from
+                                          %s
+                                          where to_number(art, '000') in %s and yr in %s",
                                             countvar, tab, specsel, yrsel)
                        ),
                        total_iwc_januari = list(

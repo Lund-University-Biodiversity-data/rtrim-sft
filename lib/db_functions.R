@@ -574,7 +574,19 @@ getPKTData <- function (pool) {
   return(regPKTdat)
 }
 
-# get site data from mongoDB for schemes Sommarpunktrutter and Vinterpunktrutter
+# get site data from psql database for kustfagel
+# for use in filtering the data by county (län)
+getKustData <- function (pool) {
+  queryregKust <- "select distinct ruta as site, ruta as lokalnamn, left(ruta, -4) as lan
+                  from
+                  totalkustfagel200
+                  order by site"
+  regKustdat <<- dbGetQuery(pool, queryregKust)
+  
+  return(regKustdat)
+}
+
+# get site data from mongoDB for schemes Sommarpunktrutter and Vinterpunktrutter and Kustfagel
 # based on their project ID in the database
 # output: data frame used for filtering data by county (län)
 getPKTDataMongo <- function (projectId) {
@@ -607,8 +619,8 @@ getPKTDataMongo <- function (projectId) {
   # replace the codes with the respective county name
   # where no county is assigned to a site, leave empty
   for(iLan in 1:nrow(result)) {
-    if (nchar(result$lan[iLan]) < 3 && nchar(result$lan[iLan]) > 0) {
-      result$lan[iLan] <- counties$name[counties$code == result$lan[iLan]]
+    if (nchar(result$lan[iLan]) > 2) {
+      result$lan[iLan] <- counties$code[counties$name == result$lan[iLan]]
     }
   }
   

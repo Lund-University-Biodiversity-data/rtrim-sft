@@ -471,9 +471,6 @@ server <- function(input, output, session) {
            lan = regPKTdat$site[regPKTdat$lan%in%input$lanspecrtPKTAnalyze])
   })
   
-  # get site data for coastal bird scheme
-  # can use same function as for punktrutter schemes, because same columns required in output and similar structure in db
-  regKustdat <<- getPKTDataMongo(project_id_kust)
   
   specrouteKustAnalyze <- reactive({
     switch(input$specrtKustAnalyze,
@@ -560,6 +557,11 @@ server <- function(input, output, session) {
       else if (input$tabsel == "totalkustfagel200") {
         projectId <- project_id_kust
         projectActivityId <- project_activity_id_kust
+        
+        # get site data for coastal bird scheme
+        # can use same function as for punktrutter schemes, because same columns required in output and similar structure in db
+        regKustdat <<- getPKTDataMongo(project_id_kust)
+        
       }
 
 
@@ -598,6 +600,9 @@ server <- function(input, output, session) {
       }
       else if (input$tabsel == "totalsommar_pkt" | input$tabsel == "totalvinter_pkt") {
         regPKTdat <<- getPKTData(pool)
+      }
+      else if (input$tabsel == "totalkustfagel200") {
+        regKustdat <<- getKustData(pool)
       }
 
       DoQuery(pool = pool, tab = input$tabsel, spec=specart(),

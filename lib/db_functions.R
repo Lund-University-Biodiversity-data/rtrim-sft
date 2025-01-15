@@ -39,6 +39,58 @@ getApprovedActivities <- function (projectActivityId) {
 }
 
 
+# function to query mongo database collection "" for earliest and latest year of observation
+# input: projectActivityId of selected monitoring scheme
+getYearsMongo <- function (projectActivityId) {
+  
+  activities <- getApprovedActivities(projectActivityId)
+  
+  print(paste("start getYearsMongo", Sys.time()))
+  
+  mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
+  
+  res <- mongoConnection$aggregate(sprintf('[
+		{"$match": {
+	        "status" : "active",
+	        "activityId": {"$in" : [%s]}
+	    }},
+	    {"$project": {
+	        "data.surveyDate":1
+	    }},
+	    {"$unwind": "$data"},
+      {"$project": {
+	        "dates": "$data.surveyDate"
+	    }},
+	    {"$group": {
+	    	"_id": null,
+	    	"yearsUnique": {"$addToSet": "$dates"}
+	    }},
+	    {"$sort" : {
+		    "yearsUnique" : 1
+		}}
+	    ]', activities),
+    options = '{"allowDiskUse":true}',
+    iterate = TRUE
+  )
+  
+  listYrs <- c()
+  
+  while(!is.null(output <- res$one())){
+    for (yr in output$yearsUnique) {
+      
+      listYrs <- c(listYrs, yr)
+    }
+  }
+  
+  listYrs <- unique(listYrs)
+  Yrsdf <- data.frame(minyr = as.integer(substring(min(listYrs), 1, 4)), maxyr = as.integer(substring(max(listYrs), 1, 4)))
+  
+  print(paste("end getYearsMongo", Sys.time()))
+  
+  return(Yrsdf)
+}
+
+
 # function to query mongo database collection "output" for species' scientific names
 # input: projectActivityId of selected monitoring scheme
 getUniquesSpeciesFromScheme <- function (projectActivityId) {

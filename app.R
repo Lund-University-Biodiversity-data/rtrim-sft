@@ -721,16 +721,44 @@ server <- function(input, output, session) {
     updateCheckboxGroupInput(inputId = 'tableSumm', selected = input$tabsel)
   })
   
-
+  # show earliest and latest year available for selected scheme in selected choice of database
   output$yrSlider <- renderUI({
-    queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
-              from %s", input$tabsel)
-    yrs <- dbGetQuery(pool, queryyr)
+    if (input$databasechoice == 'mongodb') {
+      if (input$tabsel == "totalstandard") {
+        projectId <- project_id_std
+        projectActivityId <- project_activity_id_std
+      }
+      else if (input$tabsel == "totalsommar_pkt") {
+        projectId <- project_id_punkt
+        projectActivityId <- project_activity_id_summer
+      } 
+      else if (input$tabsel == "totalvinter_pkt") {
+        projectId <- project_id_punkt
+        projectActivityId <- project_activity_id_winter
+      } 
+      else if (input$tabsel == "total_iwc_januari" || input$tabsel == "total_iwc_september") {
+        projectId <- project_id_iwc
+        projectActivityId <- project_activity_id_iwc
+      } 
+      else if (input$tabsel == "totalkustfagel200") {
+        projectId <- project_id_kust
+        projectActivityId <- project_activity_id_kust
+      }
+      
+      yrs <- getYearsMongo(projectActivityId)
+    }
+    else {
+      queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
+                from %s", input$tabsel)
+      yrs <- dbGetQuery(pool, queryyr)
+    }
+    
     sliderInput(inputId = 'selyrs', label = 'Set years',
                 min = yrs$minyr, max = yrs$maxyr, value = c(2017, yrs$maxyr),
                 step = 1, sep = NULL)
   })
 
+  # year range for slider in tab 'analyze data' based on acquired data
   output$yrSliderAnalyze <- renderUI({
     yrs <- range(data()$time)
     sliderInput(inputId = 'selyrsAnalyze', label = 'Set years',
@@ -738,11 +766,13 @@ server <- function(input, output, session) {
                 step = 1, sep = NULL)
   })
 
+  # set default base year as first year of selected time span
   output$yearBaseSummAuto <- renderUI({
     yrs <- range(data()$time)
     tags$div(textInput('yearBaseSumm', label = 'Base year:', value = yrs[1]))
   })
     
+  # show species list from selected choice of database
   output$specCheckbox <- renderUI({
     if (input$databasechoice == 'mongodb') {
       if (input$tabsel == "totalstandard") {

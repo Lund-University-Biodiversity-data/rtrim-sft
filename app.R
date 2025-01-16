@@ -153,8 +153,9 @@ ui <- fluidPage(theme = 'flatly',
                                            selected = 'all')),
                                     column(6,
                                            conditionalPanel(condition = 'input.specsp == "custom"',
-                                                            p('Please upload a csv file simply listing the art numbers of the species you want to select (only numbers separated by commas, no quotation marks). It can look like this: 1, 2, 3, 4, 5, or like this: 001, 098, 100, 345, 008.'),
-                                                            fileInput("specset", "Choose csv File", accept = ".csv"),
+                                                            p('Please upload an excel or csv file listing the art numbers of the species you want to select. You can find a template below for the required format.'),
+                                                            downloadLink('specTemplate', 'Download template'),
+                                                            fileInput("specset", "Choose xlsx, xls or csv File", accept = c(".csv", ".xlsx", ".xls")),
                                                             verbatimTextOutput("specset_contents"))
                                            )
                            ),
@@ -710,20 +711,36 @@ server <- function(input, output, session) {
     updateCheckboxGroupInput(inputId = 'indspecsp', selected = specart())
   })
   
+  # provide excel template for custom species set data
+  output$specTemplate <- downloadHandler(
+    filename = "species_set_template.xlsx",
+    content = function(file) {
+      template <- read_xlsx(paste0(path_project_templates, "species_set_template.xlsx"), sheet = "species_set", col_names = TRUE, col_types = c("text", "text"))
+      instructions <- read_xlsx(paste0(path_project_templates, "species_set_template.xlsx"), sheet = "README")
+      write_xlsx(list('species_set' = template, 'README' = instructions), file)
+    }
+  )
+  
   # read in custom species set from uploaded file
   output$specset_contents <- renderPrint({
     file <- input$specset
     req(file)
     
     ext <- tools::file_ext(file$datapath)
-    shiny::validate(need(ext == "csv", "Please upload a csv file"))
+    shiny::validate(need(ext %in% c("csv", "xlsx", "xls"), "Please upload an excel or csv file"))
     
-    customSpecs <- read.csv(file$datapath, header = FALSE, nrows = 1)
-    vcustomSpecs <- as.vector(as.integer(customSpecs[1,]))
+    if (ext == "csv") {
+      customSpecs <- read.csv(file$datapath)
+    }
+    else {
+      customSpecs <- read_excel(file$datapath)
+    }
+    
+    vcustomSpecs <- as.vector(as.integer(customSpecs$art))
     
     updateCheckboxGroupInput(inputId = 'indspecsp', selected = vcustomSpecs)
     
-    print(vcustomSpecs)
+    print(paste('Your set contains the following species:', list(vcustomSpecs)))
   })
   
   # output species selection in tab 'Analyze data'

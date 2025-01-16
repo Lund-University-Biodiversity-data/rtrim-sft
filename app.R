@@ -148,7 +148,7 @@ ui <- fluidPage(theme = 'flatly',
                                                        `Environmental Objective 13` = 'eo13',
                                                        `Fredriks urval IWC Januari` = 'iwcjan',
                                                        `Individual species` = 'ind',
-                                                       `Custom set of species from csv file` = 'custom' 
+                                                       `Custom set of species from file upload` = 'custom' 
                                                        ),
                                            selected = 'all')),
                                     column(6,

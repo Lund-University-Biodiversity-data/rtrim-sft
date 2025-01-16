@@ -253,7 +253,7 @@ ui <- fluidPage(theme = 'flatly',
                                                                          selected = 'all'),
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "karta"',
                                                                              p('Define your area of interest by clicking on the map to set the vertices of a polygon. You can turn off the existing point data layers at the top right of the map.
-                                                                               To start over and remove all points click "Clear polygon". When you are done, confirm your selection by clicking "Select routes".'))
+                                                                               To start over and remove all points, click "Clear polygon". To remove only the last point you set, click "Undo one". When you are done, confirm your selection by clicking "Select routes".'))
                                                             ),
                                                      column(8,
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "lan"',
@@ -264,9 +264,11 @@ ui <- fluidPage(theme = 'flatly',
                                                                              uiOutput('fjlCheckboxAnalyze')),
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "karta"',
                                                                              leafletOutput("map"),
-                                                                             fluidRow(column(3,
+                                                                             fluidRow(column(2,
                                                                                              actionButton('clearMap', 'Clear polygon')),
-                                                                                      column(3,
+                                                                                      column(2,
+                                                                                             actionButton('clearOne', 'Undo one')),
+                                                                                      column(2,
                                                                                              actionButton('selectmap', 'Select routes')),
                                                                                       column(6,
                                                                                              withSpinner(verbatimTextOutput('mapsel'), proxy.height = '100px'))
@@ -897,6 +899,19 @@ server <- function(input, output, session) {
     proxy %>% clearShapes()
     lng <<- c()
     lat <<- c()
+  })
+  
+  # clear polygon from map
+  observe({
+    input$clearOne
+    req(lat, lng)
+    lng <<- lng[1:(length(lng)-1)]
+    lat <<- lat[1:(length(lat)-1)]
+    coords <- data.frame(lng, lat)
+    proxy <- leafletProxy('map')
+    proxy %>% clearShapes()
+    proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+    proxy %>% addPolygons(layerId = 'area', data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
   })
   
   # select routes based on polygon the user defined

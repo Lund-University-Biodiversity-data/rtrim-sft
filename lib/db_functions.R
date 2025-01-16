@@ -251,6 +251,17 @@ getListsFromAla <- function (poolParams) {
 	return(dfspecies)
 }
 
+# get species names for misc census
+getSpeciesNames <- function (pool, species) {
+  querysp <- sprintf("select species_id as art, species_sw_name as arthela, species_latin_name as latin, species_en_name as englishname, species_worldname as worldname, species_rank as rank, species_guid as guid
+              from species_from_ala
+              where to_number(species_id, '000') in (%s)
+              order by art", species)
+  spdat <<- dbGetQuery(pool, querysp)
+  
+  return(spdat)
+}
+
 getLimitNorthSouth <- function (pool) {
 	query <- 'select id, species_id as "art", species_id_main as "speciesmain", species_sw_name as "arthela", species_latin_name as "latin", species_en_name as "englishname", latitude_limit as "Latitudgräns"
               from species_limit_north_south

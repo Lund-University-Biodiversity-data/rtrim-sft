@@ -124,8 +124,8 @@ ui <- fluidPage(theme = 'flatly',
                                                        `Kustfagelrutor` = 'totalkustfagel200',
                                                        #`Sjöfågeltaxering Vår` = 'totalvatmark',
                                                        `IWC Januari` = 'total_iwc_januari',
-                                                       `IWC September` = 'total_iwc_september'#,
-                                                       #`Miscellaneous system` = 'misc_census'
+                                                       `IWC September` = 'total_iwc_september',
+                                                       `Miscellaneous system` = 'misc_census'
                                                        ),
                                         selected = 'totalstandard', inline = FALSE, width = NULL),
                            conditionalPanel(condition = 'input.tabsel == "totalstandard"',
@@ -141,6 +141,14 @@ ui <- fluidPage(theme = 'flatly',
                                                                               `Period 4`= 4,
                                                                               `Period 5`= 5),
                                                                selected = 3, inline = TRUE)
+                                            ),
+                           conditionalPanel(condition = 'input.tabsel == "misc_census"',
+                                            p("Please make sure your data is in the required format. You can find a template below."),
+                                            downloadLink("misc_template", "Download excel template"),
+                                            fileInput("misc_data", "Choose CSV, XLSX or XLS file", accept = c(".csv", ".xlsx", ".xls")),
+                                            verbatimTextOutput("misc_data_contents"),
+                                            print('Below you will see the first six rows of the imported data. If you find it has not been recognized correctly, please check the format of your data and try uploading it again.'),
+                                            tableOutput("contents")
                                             ),
                            hr(),
                            withSpinner(uiOutput('yrSlider')),
@@ -267,7 +275,7 @@ ui <- fluidPage(theme = 'flatly',
                            conditionalPanel(condition = 'input.tabsel == "total_iwc_januari" || input.tabsel == "total_iwc_september"',
                                             fluidRow(column(4,
                                                             radioButtons('specrtIWCAnalyze', label = 'Select sites to include',
-                                                                         choices = list(`All availble sites` = 'all',
+                                                                         choices = list(`All available sites` = 'all',
                                                                                         `Coasts only (ki=K)` = 'coast',
                                                                                         `Inland only (ki=I)` = 'inland',
                                                                                         `Eastern coastal (ev=E & ki=K)` = 'east',
@@ -309,6 +317,19 @@ ui <- fluidPage(theme = 'flatly',
                                             fluidRow(column(12,
                                                             conditionalPanel(condition = 'input.specrtKustAnalyze == "ind"',
                                                                              uiOutput('indrtKustCheckboxAnalyze')))
+                                            )
+                           ),
+                           conditionalPanel(condition = 'input.tabsel == "misc_census"',
+                                            fluidRow(column(4,
+                                                            radioButtons('specrtMiscAnalyze', label = 'Select sites to include',
+                                                                         choices = list(`All available sites` = 'all',
+                                                                                        `Filter by 'extra'` = 'extra'
+                                                                         ),
+                                                                         selected = 'all')),
+                                                     column(8,
+                                                            conditionalPanel(condition = 'input.specrtMiscAnalyze == "extra"',
+                                                                             uiOutput('extraCheckboxAnalyze'))
+                                                     )
                                             )
                            ),
                            hr(),
@@ -356,7 +377,6 @@ ui <- fluidPage(theme = 'flatly',
                                                                               `totalvinter_pkt`= "totalvinter_pkt",
                                                                               `Kustfagelrutor` = "totalkustfagel200",
                                                                               #`totalvatmark`= "totalvatmark"),
-                                                                              #`Kustfagel`= "totalkustfagel200",
                                                                               `IWC Januari` = "total_iwc_januari",
                                                                               `IWC September` = "total_iwc_september",
                                                                               `Miscellaneous system` = "misc_census"),
@@ -464,7 +484,7 @@ server <- function(input, output, session) {
            lan = regIWCdat$site[regIWCdat$lan%in%input$lanspecrtIWCAnalyze])
   })
   
-  
+
   specroutePKTAnalyze <- reactive({
     switch(input$specrtPKTAnalyze,
            all = regPKTdat$site,
@@ -477,6 +497,14 @@ server <- function(input, output, session) {
            all = regKustdat$site,
            lan = regKustdat$site[regKustdat$lan%in%input$lanspecrtKustAnalyze],
            ind = input$indspecrtKustAnalyze)
+  })
+  
+  
+  # spatially filter misc data for analysis
+  specrouteMiscAnalyze <- reactive({
+    switch(input$specrtMiscAnalyze,
+           all = data()$site,
+           extra = data()$site[data()$extra%in%input$extraspecrtAnalyze])
   })
   
   
@@ -501,7 +529,42 @@ server <- function(input, output, session) {
         correctionsArt$s248 = TRUE
     }
 
-    if (input$databasechoice == "mongodb") {
+    if (input$tabsel == "misc_census") {
+      
+      # select time period by excluding rows of years > or < than selected period
+      excl <- c()
+      miscData2 <- miscData
+      for (ob in 1:nrow(miscData)) {
+        if (miscData$yr[ob] < input$selyrs[1] || miscData$yr[ob] > input$selyrs[2]) {
+          excl <- c(excl, ob)
+        }
+      }
+      if (length(excl > 0)) {
+        miscData2 <- miscData2[-excl,]
+      }
+      
+      # apply species specific corrections
+      # need columns "count" and "species"
+      names(miscData2) <- c("extra", "site", "time", "species", "count")
+      miscData3 <- applySpecificCorrections(miscData2, correctionsArt)
+      
+      # select species
+      excl <- c()
+      miscData4 <- miscData3
+      for (ob in 1:nrow(miscData3)) {
+        if (!as.integer(miscData3$species[ob]) %in% specart()) { 
+          excl <- c(excl, ob)
+        }
+      }
+      if (length(excl > 0)) {
+        miscData4 <- miscData4[-excl,]
+      }
+      
+      # export and save data
+      exportSaveData(miscData4, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
+    }
+    
+    else if (input$databasechoice == "mongodb") {
 
       linepoint <- ""
       selectedPeriod <- ""
@@ -570,8 +633,7 @@ server <- function(input, output, session) {
       sitesMatchMongo <- getMatchSitesMongo(projectId)
 
       print(Sys.time())
-      
-
+  
       # get matching species
       #speciesMatch <- getMatchSpecies(poolParams, specart())
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
@@ -588,7 +650,7 @@ server <- function(input, output, session) {
 
       exportSaveData(dataMerge, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
     }
-    else {
+    else if (input$databasechoice == "psql") {
 
       rcdat <<- getSites(pool)
 
@@ -640,6 +702,9 @@ server <- function(input, output, session) {
     else if (input$tabsel == 'totalkustfagel200') {
       rix <- dat$site%in%specrouteKustAnalyze()
     }
+    else if (input$tabsel=='misc_census') {
+      rix <- dat$site%in%specrouteMiscAnalyze()
+    } 
     else {
       rix <- !logical(nrow(dat))
     }
@@ -705,6 +770,38 @@ server <- function(input, output, session) {
   })
 
 
+  # provide excel template for misc census data
+  output$misc_template <- downloadHandler(
+    filename = "misc_data_upload_template.xlsx",
+    content = function(file) {
+      template <- read_xlsx(paste0(path_project_templates, "misc_data_upload_template.xlsx"), col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
+      write_xlsx(template, file)
+    }
+  )
+  
+  # read data file uploaded by user 
+  output$misc_data_contents <- renderPrint({print(input$misc_data)})
+  
+  output$contents <- renderTable({
+    file <- input$misc_data
+    req(file)
+    
+    ext <- tools::file_ext(file$datapath)
+    
+    if (ext == "csv") {
+      miscData <<- read.csv(file$datapath, header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
+    }
+    else if (ext == "xlsx" | ext == "xls") {
+      miscData <<- read_excel(file$datapath, col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
+    }
+    else {
+      print("ERROR: Please upload a csv file or an excel file")
+    }
+    
+    print(head(miscData))
+  })
+  
+  
   output$resultGenerateSpecies <- renderPrint({
     getspecies()})
 
@@ -722,13 +819,25 @@ server <- function(input, output, session) {
   })
   
 
-  output$yrSlider <- renderUI({
-    queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
-              from %s", input$tabsel)
-    yrs <- dbGetQuery(pool, queryyr)
-    sliderInput(inputId = 'selyrs', label = 'Set years',
-                min = yrs$minyr, max = yrs$maxyr, value = c(2017, yrs$maxyr),
-                step = 1, sep = NULL)
+  observe({input$misc_data
+    output$yrSlider <- renderUI({
+      if (input$tabsel == "misc_census") {
+          shiny::validate(
+            need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
+          )
+          sliderInput(inputId = 'selyrs', label = 'Set years',
+                    min = min(miscData$yr), max = max(miscData$yr), value = c(min(miscData$yr), max(miscData$yr)),
+                    step = 1, sep = NULL)
+      }
+      else {
+        queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
+                  from %s", input$tabsel)
+        yrs <- dbGetQuery(pool, queryyr)
+        sliderInput(inputId = 'selyrs', label = 'Set years',
+                    min = yrs$minyr, max = yrs$maxyr, value = c(2017, yrs$maxyr),
+                    step = 1, sep = NULL)
+      }
+    })
   })
 
   output$yrSliderAnalyze <- renderUI({
@@ -744,49 +853,59 @@ server <- function(input, output, session) {
   })
     
   output$specCheckbox <- renderUI({
-    if (input$tabsel == "totalstandard") {
-      projectId <- project_id_std
-      projectActivityId <- project_activity_id_std
-    }
-    else if (input$tabsel == "totalsommar_pkt") {
-      projectId <- project_id_punkt
-      projectActivityId <- project_activity_id_summer
-    } 
-    else if (input$tabsel == "totalvinter_pkt") {
-      projectId <- project_id_punkt
-      projectActivityId <- project_activity_id_winter
-    } 
-    else if (input$tabsel == "total_iwc_januari" || input$tabsel == "total_iwc_september") {
-      projectId <- project_id_iwc
-      projectActivityId <- project_activity_id_iwc
-    } 
-    # else if (input$tabsel == "totalvinter_pkt") { # what is this else if?
-    #   projectId <- project_id_punkt
-    #   projectActivityId <- project_activity_id_iwc
-    # } 
-    else if (input$tabsel == "totalkustfagel200") {
-      projectId <- project_id_kust
-      projectActivityId <- project_activity_id_kust
+    if (input$tabsel == "misc_census") {
+      species <- c(as.integer(unique(miscData$art)))
+      species_string <- paste0(species, collapse = ",")
+      spdat <- getSpeciesNames(poolParams, species_string)
+      speclist <- as.list(spdat$art)
+      names(speclist) <- as.list(spdat$arthela)
     }
 
-    specsSN <- getUniquesSpeciesFromScheme(projectActivityId)
-    
-    nbSp <- nrow(specsSN)
-
-    vSpecies <- vector()
-    for (iSp  in 1:nbSp) {
-      # check if species name exists in both objects. If not, print validation error
-      shiny::validate(
-        need(str_trim(specsSN$name[iSp]) %in% attributes(speciesMatch)$names, paste0("ERROR in retrieving the species items. This item can't be found in the lists module: ", specsSN$name[iSp]))
-      )
-      vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
+    else {
+      if (input$tabsel == "totalstandard") {
+        projectId <- project_id_std
+        projectActivityId <- project_activity_id_std
+      }
+      else if (input$tabsel == "totalsommar_pkt") {
+        projectId <- project_id_punkt
+        projectActivityId <- project_activity_id_summer
+      } 
+      else if (input$tabsel == "totalvinter_pkt") {
+        projectId <- project_id_punkt
+        projectActivityId <- project_activity_id_winter
+      } 
+      else if (input$tabsel == "total_iwc_januari" || input$tabsel == "total_iwc_september") {
+        projectId <- project_id_iwc
+        projectActivityId <- project_activity_id_iwc
+      } 
+      # else if (input$tabsel == "totalvinter_pkt") { # what is this else if?
+      #   projectId <- project_id_punkt
+      #   projectActivityId <- project_activity_id_iwc
+      # } 
+      else if (input$tabsel == "totalkustfagel200") {
+        projectId <- project_id_kust
+        projectActivityId <- project_activity_id_kust
+      }
+  
+      specsSN <- getUniquesSpeciesFromScheme(projectActivityId)
+      
+      nbSp <- nrow(specsSN)
+  
+      vSpecies <- vector()
+      for (iSp  in 1:nbSp) {
+        # check if species name exists in both objects. If not, print validation error
+        shiny::validate(
+          need(str_trim(specsSN$name[iSp]) %in% attributes(speciesMatch)$names, paste0("ERROR in retrieving the species items. This item can't be found in the lists module: ", specsSN$name[iSp]))
+        )
+        vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
+      }
+      vSpecies <- sort(vSpecies)
+  
+      specnames <- spdat$arthela[match(vSpecies,spdat$art)]
+      
+      speclist <- as.list(vSpecies)
+      names(speclist) <- specnames
     }
-    vSpecies <- sort(vSpecies)
-
-    specnames <- spdat$arthela[match(vSpecies,spdat$art)]
-    
-    speclist <- as.list(vSpecies)
-    names(speclist) <- specnames
     
     tags$div(tags$div(strong(p("Select species"))),
              tags$div(align = 'left',
@@ -872,6 +991,7 @@ server <- function(input, output, session) {
     )
   })
   
+
   output$lanIWCCheckboxAnalyze <- renderUI({
     lans <- sort(unique(regIWCdat$lan[nchar(regIWCdat$lan) > 0]))
     lanlist <- as.list(lans)
@@ -922,6 +1042,22 @@ server <- function(input, output, session) {
              )
     )
   })
+
+                                         
+  # filter for misc census
+  output$extraCheckboxAnalyze <- renderUI({
+    extras <- sort(unique(data()$extra))
+    extralist <- as.list(extras)
+    tags$div(tags$div(strong(p("Select"))),
+             tags$div(align = 'left',
+                      class = 'multicol8',
+                      checkboxGroupInput(inputId = 'extraspecrtAnalyze', label = NULL,
+                                         choices = extralist,
+                                         selected = NULL)
+             )
+    )
+  })
+
   
   # output$testtext <- renderText({
   #   as.character('od'%in%input$trimset)})

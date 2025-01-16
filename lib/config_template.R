@@ -30,8 +30,9 @@ list_id_owl <<- "dr167"
 list_id_mammal <<- "dr159"
 list_id_amphibian <<- "dr160"
 
-path_project <<- "/home/blabla/rtrim-interface-development"
-path_project_extract <<- "/home/blabla/rtrim-interface-development/extract"
+path_project <<- "/home/blabla/rtrim-interface-development/"
+path_project_templates <<- "/home/blabla/rtrim-interface-development/templates/"
+path_project_extract <<- "/home/blabla/rtrim-interface-development/extract/"
 url_extract <<- "http://canmoveapp.ekol.lu.se/rtrim-sft-extract/"
 
 project_id_std <<- "xxx-xxx-xxx-xxx"

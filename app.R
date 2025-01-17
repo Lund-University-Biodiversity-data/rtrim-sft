@@ -1079,118 +1079,118 @@ server <- function(input, output, session) {
   
   # configure download buttons
   observe({
-    if (input$sendquery) {
-      Sys.sleep(1)
-      # enable the download buttons
-      if (2 %in% input$savedat) {
-        shinyjs::enable("downloadCSV")
-      }
-      if (3 %in% input$savedat) {
-        shinyjs::enable("downloadCSV2")
-      }
-      if (4 %in% input$savedat) {
-        shinyjs::enable("downloadRDATA")
-      }
+    input$sendquery
+    req(input$sendquery)
+    Sys.sleep(1)
+    # enable the download buttons
+    if (2 %in% input$savedat) {
+      shinyjs::enable("downloadCSV")
     }
+    if (3 %in% input$savedat) {
+      shinyjs::enable("downloadCSV2")
+    }
+    if (4 %in% input$savedat) {
+      shinyjs::enable("downloadRDATA")
+    }
+
+    output$downloadCSV <- downloadHandler(
+      filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
+      content = function(file) {
+        write.csv(dataMerge, file, row.names = FALSE)
+      }
+    )
+    
+    output$downloadCSV2 <- downloadHandler(
+      filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
+      content = function(file) {
+        write.csv2(dataMerge, file, row.names = FALSE)
+      }
+    )
+    
+    output$downloadRDATA <- downloadHandler(
+      filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
+      content = function(file) {
+        save(dataMerge, file = file)
+      }
+    )
   })
 
-  output$downloadCSV <- downloadHandler(
-    filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
-    content = function(file) {
-      write.csv(dataMerge, file, row.names = FALSE)
-    }
-  )
-  
-  output$downloadCSV2 <- downloadHandler(
-    filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
-    content = function(file) {
-      write.csv2(dataMerge, file, row.names = FALSE)
-    }
-  )
-  
-  output$downloadRDATA <- downloadHandler(
-    filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
-    content = function(file) {
-      save(dataMerge, file = file)
-    }
-  )
-
   observe({
-    if (input$sendanalysis) {
-      Sys.sleep(1)
-      # enable the download buttons
-        if (2 %in% input$saveresult) {
-            shinyjs::enable("downloadAnalysis")
-          }
-        if (input$makepdf) {
-            shinyjs::enable("downloadPDF")
-          }
+    input$sendanalysis
+    req(input$sendanalysis)
+    Sys.sleep(1)
+    # enable the download buttons
+    if (2 %in% input$saveresult) {
+        shinyjs::enable("downloadAnalysis")
       }
+    if (input$makepdf) {
+        shinyjs::enable("downloadPDF")
+      }
+  
+    output$downloadAnalysis <- downloadHandler(
+      filename = paste0(input$filenameRes, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
+      content = function(file) {
+        save(trimOutput, file = file)
+      }
+    )
+    
+    output$downloadPDF <- downloadHandler(
+      filename = paste0(input$filenamepdf, '.pdf'),
+      content = function(file) {
+        file.copy(from=paste0(path_project_extract,input$filenamepdf, '.pdf'), to=file)
+      }
+    )
   })
   
-  output$downloadAnalysis <- downloadHandler(
-    filename = paste0(input$filenameRes, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
-    content = function(file) {
-      save(trimOutput, file = file)
-    }
-  )
-  
-  output$downloadPDF <- downloadHandler(
-    filename = paste0(input$filenamepdf, '.pdf'),
-    content = function(file) {
-      file.copy(from=paste0(path_project_extract,input$filenamepdf, '.pdf'), to=file)
-    }
-  )
-  
   observe({
-    if (input$sendquerysumm) {
-      Sys.sleep(1)
-      # enable the download buttons
-        if (length(input$tableSumm) > 1) {
-            shinyjs::enable("downloadComb")
-          }
-        if (length(input$tableSumm) == 1) {
-            shinyjs::enable("downloadSingle")
-          }
-        if (input$homepageSumm) {
-            shinyjs::enable("downloadHomepage")
-          }
-    }
-  })
-  
-  # download file reporting on all selected schemes next to each other
-  output$downloadComb <- downloadHandler(
-    filename = paste0('Trimcombined_', 'Figurritning_', input$filenameResSumm, '.xlsx'),
-    content = function(file) {
-      write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
-    }
-  )
-  
-  # download file reporting on all selected schemes individually
-  output$downloadSingle <- downloadHandler(
-    filename = paste0('Trim_', 'Figurritning_', input$filenameResSumm, '.xlsx'),
-    content = function(file) {
-      # if (length(input$tableSumm) == 1) {
-          write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
-      # }
-        # else if (length(input$tableSumm) > 1) {
-        #   write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
-        # }
-    }
-  )
-  
-  # download overview data file on all selected schemes individually
-  output$downloadHomepage <- downloadHandler(
-    filename = paste0('Trim_', 'Tabeller_', input$filenameResSumm, '.xlsx'),
-    content = function(file) {
-      # if (length(input$tableSumm) == 1) {
-      write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
-      # }
-        # else if (length(input$tableSumm) > 1) {
-        #   write_xlsx(summarizeRt()[[3]], file, format_headers = TRUE)
-        # }
+    input$sendquerysumm
+    req(input$sendquerysumm)
+    Sys.sleep(1)
+    # enable the download buttons
+    if (length(input$tableSumm) > 1) {
+        shinyjs::enable("downloadComb")
       }
-  )
+    if (length(input$tableSumm) == 1) {
+        shinyjs::enable("downloadSingle")
+      }
+    if (input$homepageSumm) {
+        shinyjs::enable("downloadHomepage")
+      }
+  
+    # download file reporting on all selected schemes next to each other
+    output$downloadComb <- downloadHandler(
+      filename = paste0('Trimcombined_', 'Figurritning_', input$filenameResSumm, '.xlsx'),
+      content = function(file) {
+        write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
+      }
+    )
+    
+    # download file reporting on all selected schemes individually
+    output$downloadSingle <- downloadHandler(
+      filename = paste0('Trim_', 'Figurritning_', input$filenameResSumm, '.xlsx'),
+      content = function(file) {
+        # if (length(input$tableSumm) == 1) {
+            write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
+        # }
+          # else if (length(input$tableSumm) > 1) {
+          #   write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
+          # }
+      }
+    )
+    
+    # download overview data file on all selected schemes individually
+    output$downloadHomepage <- downloadHandler(
+      filename = paste0('Trim_', 'Tabeller_', input$filenameResSumm, '.xlsx'),
+      content = function(file) {
+        # if (length(input$tableSumm) == 1) {
+        write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)
+        # }
+          # else if (length(input$tableSumm) > 1) {
+          #   write_xlsx(summarizeRt()[[3]], file, format_headers = TRUE)
+          # }
+        }
+    )
+  })
   
   shinyjs::disable("downloadCSV")
   shinyjs::disable("downloadCSV2")

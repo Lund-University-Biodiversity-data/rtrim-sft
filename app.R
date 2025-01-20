@@ -191,18 +191,6 @@ ui <- fluidPage(theme = 'flatly',
                                                        `Autodelete` = 'ad'),
                                         selected = c('od', 'sc', 'ad'), inline = TRUE),
                            hr(),
-                           fluidRow(column(6,
-                                           checkboxGroupInput('saveresult',
-                                                              label = 'Result output to (will always be available in app)?', 
-                                                              choices = list(`R Workspace (named as trimOutput)` = 1,
-                                                                             `.rdata-file` = 2),
-                                                              selected = c(1, 2), inline = TRUE)
-                                          ),
-                                    column(6,
-                                            textInput('filenameRes', label = 'Enter filename:', value = 'trimOutput')
-                                    )
-                                  ),
-                           hr(),
                            withSpinner(uiOutput('yrSliderAnalyze'), proxy.height = '100px'),
                            verbatimTextOutput('testtext'),
                            hr(),
@@ -274,15 +262,19 @@ ui <- fluidPage(theme = 'flatly',
                                             )
                            ),
                            hr(),
-                           fluidRow(column(8,
-                                           checkboxInput('makepdf', label = 'Save graphs as pdf',
-                                                         value = TRUE),
-                                           textInput('filenamepdf', label = 'Enter filename:', value = 'TrimGrafer')
-                                           ),
-                                    column(4,
-                                           actionButton("sendanalysis", "Run analysis"))
-                                    ),
-                           #actionButton("sendanalysis", "Run analysis"),
+                           fluidRow(column(6,
+                                           checkboxGroupInput('saveresult',
+                                                              label = 'Result output to (will always be available in app)?', 
+                                                              choices = list(`R Workspace (named as trimOutput)` = 1,
+                                                                             `.rdata-file` = 2,
+                                                                             `Save graphs as pdf` = 3),
+                                                              selected = c(1, 2, 3), inline = TRUE)
+                           ),
+                           column(6,
+                                  textInput('filenameRes', label = 'Enter filename:', value = 'trimOutput'))
+                           ),
+                           hr(),
+                           actionButton("sendanalysis", "Run analysis"),
                            withSpinner(verbatimTextOutput('testtext2'), proxy.height = '100px'),
                            hr()
                   ),
@@ -822,7 +814,7 @@ server <- function(input, output, session) {
       startyr[startyr$Delprogram==input$tabsel, c('Art', 'StartYear')]
     }
     byr <- ifelse(isolate(input$selyrsAnalyze[1])>1998, isolate(input$selyrsAnalyze[1]), 1998) 
-    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = input$makepdf, filename = paste0(path_project_extract,input$filenamepdf, '.pdf'))
+    indexplot(restoplot, base = byr, ncol = 3, speciesdat = spdat, startyr = styr, makepdf = 3 %in% input$saveresult, filename = paste0(path_project_extract,input$filenameRes, '.pdf'))
   }, height = function() {
     n_plots <- sum(sapply(resultout(), function(x) inherits(x$value, 'trim')))
     # number of rows

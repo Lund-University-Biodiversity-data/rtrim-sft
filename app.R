@@ -37,6 +37,10 @@ counties <<- data.frame(code = c("AB", "C", "D", "E", "F", "G", "H", "I", "K", "
 tabShorts <<- data.frame(table = c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt', 'totalvatmark', 'totalkustfagel200', 'total_iwc_januari', 'total_iwc_september', 'misc_census'),
                          short = c('T', 'S', 'V', 'VAT', 'K', 'IWCjan', 'IWCsep', 'M'))
 
+# data frame with start years of the schemes
+yrStart <<- data.frame(table = c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt', 'totalvatmark', 'totalkustfagel200', 'total_iwc_januari', 'total_iwc_september', 'misc_census'),
+                       year = c(1996, 1975, 1975, 0, 2015, 1966, 1973, 0))
+
  ## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
 onStop(function() {
   poolClose(pool)
@@ -723,39 +727,16 @@ server <- function(input, output, session) {
   
   # show earliest and latest year available for selected scheme in selected choice of database
   output$yrSlider <- renderUI({
-    if (input$databasechoice == 'mongodb') {
-      if (input$tabsel == "totalstandard") {
-        projectId <- project_id_std
-        projectActivityId <- project_activity_id_std
-      }
-      else if (input$tabsel == "totalsommar_pkt") {
-        projectId <- project_id_punkt
-        projectActivityId <- project_activity_id_summer
-      } 
-      else if (input$tabsel == "totalvinter_pkt") {
-        projectId <- project_id_punkt
-        projectActivityId <- project_activity_id_winter
-      } 
-      else if (input$tabsel == "total_iwc_januari" || input$tabsel == "total_iwc_september") {
-        projectId <- project_id_iwc
-        projectActivityId <- project_activity_id_iwc
-      } 
-      else if (input$tabsel == "totalkustfagel200") {
-        projectId <- project_id_kust
-        projectActivityId <- project_activity_id_kust
-      }
-      
-      yrs <- getYearsMongo(projectActivityId)
+    if (input$tabsel == "misc_census") {
+      sliderInput(inputId = 'selyrs', label = 'Set years',
+                  min = min(miscData$yr), max = max(miscData$yr), value = c(min(miscData$yr), max(miscData$yr)),
+                  step = 1, sep = NULL)
     }
     else {
-      queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
-                from %s", input$tabsel)
-      yrs <- dbGetQuery(pool, queryyr)
-    }
-    
     sliderInput(inputId = 'selyrs', label = 'Set years',
-                min = yrs$minyr, max = yrs$maxyr, value = c(2017, yrs$maxyr),
+                min = yrStart$year[yrStart$table == input$tabsel], max = as.integer(format(Sys.Date(), '%Y')), value = c(2017, as.integer(format(Sys.Date(), '%Y'))),
                 step = 1, sep = NULL)
+    }
   })
 
   # year range for slider in tab 'analyze data' based on acquired data

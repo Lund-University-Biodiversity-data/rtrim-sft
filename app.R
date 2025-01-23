@@ -418,6 +418,7 @@ ui <- fluidPage(theme = 'flatly',
                                            )
                                     ),
                            hr(),
+                           verbatimTextOutput('listSites'),
                            withSpinner(verbatimTextOutput('rtSumm'), proxy.height = '100px')
                                             
                   )
@@ -757,8 +758,114 @@ server <- function(input, output, session) {
       startyr <- NULL
     }
 
-    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, lang=input$langSumm) 
+    # parameters/settings sheet
+    db <- input$databasechoice
+    tab <- input$tabsel
+    lp <- input$linepoint
+    if (!input$tabsel == 'totalstandard') {
+      lp <- 'NOT APPLICABLE'
+    }
+    else if (lp[1] == TRUE) {
+      lp <- 'lines'
+    }
+    else if (lp[2] == TRUE) {
+      lp <- 'points'
+    }
+    per <- input$specper
+    if (!input$tabsel == 'totalvinter_pkt') {
+      per <- 'NOT APPLICABLE'
+    }
+    yrs <- c(input$selyrsAnalyze)
+    # divide species into ones that gave results and ones that didn't
+    worked <- c()
+    not <- c()
+    for (s in 1:length(trimOutput)) {
+      if ('trim' %in% class(trimOutput[[s]]$value)) {
+        worked <- c(worked, gsub('Art_', '', names(trimOutput)[s]))
+      } else {
+        not <- c(not, gsub('Art_', '', names(trimOutput)[s]))
+      }
+    }
+    if (is.null(worked)) {
+      worked <- 'NONE'
+    }
+    if (is.null(not)) {
+      not <- 'NONE'
+    }
+    N_S <- input$addNS
+    corr <- c(input$specifCorrections)
+    if (is.null(corr)) {
+      corr <- 'NOT APPLICABLE'
+    }
+    mod <- input$modeltype
+    sett <- c(input$trimset)
+    sett[sett == 'od'] <- 'overdispersion'
+    sett[sett == 'sc'] <- 'serial correlation'
+    sett[sett == 'ad'] <- 'autodelete'
+    # spatial filter
+    filter <- 0
+    sel <- 0
+    if (input$tabsel == 'totalstandard') {
+      filter <- input$specrtAnalyze
+      if (filter == 'lan') {
+        sel <- input$lanspecrtAnalyze
+      }
+      else if (filter == 'lsk') {
+        sel <- input$lskspecrtAnalyze
+      }
+      else if (filter == 'fjl104' | filter == 'fjl142') {
+        sel <- input$fjlspecrtAnalyze
+      }
+      else if (filter == 'ind') {
+        sel <- input$indspecrtAnalyze
+      }
+      else if (filter == 'map') {
+        # list all selected routes
+        sel <- specrouteAnalyze()
+      }
+    }
+    else if (input$tabsel == 'total_iwc_januari' | input$tabsel == 'total_iwc_september') {
+      filter <- input$specrtIWCAnalyze
+      if (filter == 'lan') {
+        sel <- input$lanspecrtIWCAnalyze
+      }
+    }
+    else if (input$tabsel == 'totalvinter_pkt' | input$tabsel == 'totalsommar_pkt') {
+      filter <- input$specrtPKTAnalyze
+      if (filter == 'lan') {
+        sel <- input$lanspecrtPKTAnalyze
+      }
+    }
+    else if (input$tabsel == 'totalkustfagel200') {
+      filter <- input$specrtKustAnalyze
+      if (filter == 'lan') {
+        sel <- input$lanspecrtKustAnalyze
+      }
+      else if (filter == 'ind') {
+        sel <- input$indspecrtKustAnalyze
+      }
+    }
+    else if (input$tabsel == 'misc_census') {
+      filter <- input$specrtMiscAnalyze
+      if (filter == 'extra') {
+        sel <- input$extraspecrtAnalyze
+      }
+    }
+    if (sel[1] == 0) {
+      sel <- 'NOT APPLICABLE'
+    }
+    # WHICH SITES WERE ACTUALLY USED IN ANALYSIS? resultout() or trimOutput see separate textOutput
+    
+    
+    values <- c(db, tab,lp, per, list(yrs), list(worked), list(not), N_S, list(corr), mod, list(sett), filter, list(sel))
+    mat <- t(sapply(values, '[', seq(max(sapply(values, length)))))
+    mat[is.na(mat)] <- ''
+    params <<- data.frame('parameter'=c('database', 'scheme', 'subscheme', 'period', 'time range', 'species (with result)', 'species (without result)', 'North-South', 'corrections', 'modeltype', 'trimsettings', 'spatial filter', 'selected'), mat)
 
+    
+    # use data frame 'params' in DoSummarizeResult() function to add it as a sheet in the excel output 'Tabeller'
+    # create excel files
+    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, lang=input$langSumm) 
 
   })
 
@@ -1067,6 +1174,16 @@ server <- function(input, output, session) {
   #   as.integer(input$modeltype)})
   output$testtext <- renderPrint({
     session$clientData$output_plot_width})
+  
+  output$listSites <- renderPrint({
+    sites_df <- data.frame(art=c(rep(0, length(resultout()))), sites = c(rep(0, length(resultout()))))
+    for (art in 1:length(resultout())) {
+      sites_df$art[art] <- names(resultout())[art]
+      obj <- resultout()[[art]]
+      sites_df$sites[art] <- list(obj$value$site_id)
+    }
+    sites_df
+  })
 
   output$rtSumm <- renderPrint({
     summarizeRt()})

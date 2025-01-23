@@ -931,7 +931,7 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
     appOutput[[length(appOutput)+1]] <- singles
   }
   if (homepage) {
-    hptabs <- list()
+    hptabs <- list(params)
     for (i in 1:nsyst){
       Index <- lapply(specieslist[[i]],
                       function(x){
@@ -1016,11 +1016,11 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       # write.xlsx2(Slopes, file = fname, sheetName="Slopes", row.names=FALSE, append=TRUE, showNA=FALSE)
       # write_xlsx(hptabs, path = fname, format_headers = TRUE)
       # appOutput[[length(appOutput)+1]] <- hptabs
-      hptabs[[(1+3*(i-1))]] <- Tabell
-      hptabs[[(2+3*(i-1))]] <- Index
-      hptabs[[(3+3*(i-1))]] <- Slopes
+      hptabs[[(2+3*(i-1))]] <- Tabell
+      hptabs[[(3+3*(i-1))]] <- Index
+      hptabs[[(4+3*(i-1))]] <- Slopes
     }
-    names(hptabs) <- paste0(rep(c('Tabell', 'Index', 'Slopes'), length(colnames)), rep(colnames, each = 3))
+    names(hptabs) <- c('Parameters', paste0(rep(c('Tabell', 'Index', 'Slopes'), length(colnames)), rep(colnames, each = 3)))
     fname <- paste0(path_project_extract,'Trim', paste(colnames, collapse = '_'), '_Tabeller_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx')
     write_xlsx(hptabs, path = fname, format_headers = TRUE)
     appOutput[[length(appOutput)+1]] <- hptabs

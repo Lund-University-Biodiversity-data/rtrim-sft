@@ -1057,6 +1057,20 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 				vYear[nbElt] <- substr(output$surveydate, 1 , 4)
 			}
 		}
+		
+		# for iwcjanuari, december belongs to the year after
+		else if (projectActivityId == project_activity_id_iwc) {
+		  month <- substr(output$surveydate, 6 , 7)
+		  if (month == "12") {
+		    yr <- substr(output$surveydate, 1 , 4)
+		    vYear[nbElt] <- paste0(strtoi(yr)+1)
+		  }
+
+		  else {
+		    vYear[nbElt] <- substr(output$surveydate, 1 , 4)
+		  }
+		}
+		
 		else {
 			vYear[nbElt] <- substr(output$surveydate, 1 , 4)
 

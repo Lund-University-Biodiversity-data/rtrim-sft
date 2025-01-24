@@ -805,8 +805,11 @@ server <- function(input, output, session) {
     # spatial filter
     filter <- 0
     sel <- 0
+    sites <- 0
     if (input$tabsel == 'totalstandard') {
       filter <- input$specrtAnalyze
+      # all selected sites
+      sites <- specrouteAnalyze()
       if (filter == 'lan') {
         sel <- input$lanspecrtAnalyze
       }
@@ -820,24 +823,31 @@ server <- function(input, output, session) {
         sel <- input$indspecrtAnalyze
       }
       else if (filter == 'map') {
-        # list all selected routes
-        sel <- specrouteAnalyze()
+        # ADD WHEN MERGED WITH MAP OPTION VERSION
+        # coordinates of polygon
+        # sel <- coords
       }
     }
     else if (input$tabsel == 'total_iwc_januari' | input$tabsel == 'total_iwc_september') {
       filter <- input$specrtIWCAnalyze
+      # all selected sites
+      sites <- specrouteIWCAnalyze()
       if (filter == 'lan') {
         sel <- input$lanspecrtIWCAnalyze
       }
     }
     else if (input$tabsel == 'totalvinter_pkt' | input$tabsel == 'totalsommar_pkt') {
       filter <- input$specrtPKTAnalyze
+      # all selected sites
+      sites <- specroutePKTAnalyze()
       if (filter == 'lan') {
         sel <- input$lanspecrtPKTAnalyze
       }
     }
     else if (input$tabsel == 'totalkustfagel200') {
       filter <- input$specrtKustAnalyze
+      # all selected sites
+      sites <- specrouteKustAnalyze()
       if (filter == 'lan') {
         sel <- input$lanspecrtKustAnalyze
       }
@@ -847,6 +857,8 @@ server <- function(input, output, session) {
     }
     else if (input$tabsel == 'misc_census') {
       filter <- input$specrtMiscAnalyze
+      # all selected sites
+      sites <- specrouteMiscAnalyze()
       if (filter == 'extra') {
         sel <- input$extraspecrtAnalyze
       }
@@ -854,13 +866,14 @@ server <- function(input, output, session) {
     if (sel[1] == 0) {
       sel <- 'NOT APPLICABLE'
     }
-    # WHICH SITES WERE ACTUALLY USED IN ANALYSIS? resultout() or trimOutput see separate textOutput
     
     
-    values <- c(db, tab,lp, per, list(yrs), list(worked), list(not), N_S, list(corr), mod, list(sett), filter, list(sel))
-    mat <- t(sapply(values, '[', seq(max(sapply(values, length)))))
+    values <- c(db, tab,lp, per, list(yrs), list(worked), list(not), N_S, list(corr), mod, list(sett), filter, list(sel), list(sites))
+    mat <- sapply(values, '[', seq(max(sapply(values, length))))
     mat[is.na(mat)] <- ''
-    params <<- data.frame('parameter'=c('database', 'scheme', 'subscheme', 'period', 'time range', 'species (with result)', 'species (without result)', 'North-South', 'corrections', 'modeltype', 'trimsettings', 'spatial filter', 'selected'), mat)
+    params <- data.frame(mat)
+    colnames(params) <- list('database', 'scheme', 'subscheme', 'period', 'time range', 'species (with result)', 'species (without result)', 'North-South', 'corrections', 'modeltype', 'trimsettings', 'spatial filter', 'selected', 'sites selected')
+    params <<- params
 
     
     # use data frame 'params' in DoSummarizeResult() function to add it as a sheet in the excel output 'Tabeller'

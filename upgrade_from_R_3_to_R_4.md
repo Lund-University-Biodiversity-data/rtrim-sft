@@ -85,3 +85,11 @@ install.packages("openssl")
 
 TO BE TRIED TO AVOID struggling with the dependencies !!
 install.packages("shinyjs", dependencies=TRUE)
+
+
+
+install.packages("shinyjs", dependencies=TRUE)
+sudo apt-get install libgdal-dev
+sudo apt-get install gfortran
+install.packages("sf", dependencies=TRUE)
+sudo apt-get install libudunits2-dev

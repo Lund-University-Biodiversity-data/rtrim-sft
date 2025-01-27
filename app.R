@@ -37,6 +37,10 @@ counties <<- data.frame(code = c("AB", "C", "D", "E", "F", "G", "H", "I", "K", "
 tabShorts <<- data.frame(table = c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt', 'totalvatmark', 'totalkustfagel200', 'total_iwc_januari', 'total_iwc_september', 'misc_census'),
                          short = c('T', 'S', 'V', 'VAT', 'K', 'IWCjan', 'IWCsep', 'M'))
 
+# data frame with start years of the schemes
+yrStart <<- data.frame(table = c('totalstandard', 'totalsommar_pkt', 'totalvinter_pkt', 'totalvatmark', 'totalkustfagel200', 'total_iwc_januari', 'total_iwc_september', 'misc_census'),
+                       year = c(1996, 1975, 1975, 0, 2015, 1966, 1973, 0))
+
  ## Not  sure this is needed (see https://shiny.rstudio.com/articles/pool-basics.html)
 onStop(function() {
   poolClose(pool)
@@ -811,7 +815,7 @@ server <- function(input, output, session) {
     updateCheckboxGroupInput(inputId = 'tableSumm', selected = input$tabsel)
   })
   
-
+  # show slider ranging from first to last (current) year of selected scheme
   observe({input$misc_data
     output$yrSlider <- renderUI({
       if (input$tabsel == "misc_census") {
@@ -823,16 +827,14 @@ server <- function(input, output, session) {
                     step = 1, sep = NULL)
       }
       else {
-        queryyr <- sprintf("select min(yr) as minyr, max(yr) as maxyr
-                  from %s", input$tabsel)
-        yrs <- dbGetQuery(pool, queryyr)
         sliderInput(inputId = 'selyrs', label = 'Set years',
-                    min = yrs$minyr, max = yrs$maxyr, value = c(2017, yrs$maxyr),
+                    min = yrStart$year[yrStart$table == input$tabsel], max = as.integer(format(Sys.Date(), '%Y')), value = c(2017, as.integer(format(Sys.Date(), '%Y'))),
                     step = 1, sep = NULL)
       }
     })
   })
 
+  # year range for slider in tab 'analyze data' based on acquired data
   output$yrSliderAnalyze <- renderUI({
     yrs <- range(data()$time)
     sliderInput(inputId = 'selyrsAnalyze', label = 'Set years',
@@ -840,74 +842,91 @@ server <- function(input, output, session) {
                 step = 1, sep = NULL)
   })
 
+  # set default base year as first year of selected time span
   output$yearBaseSummAuto <- renderUI({
     yrs <- range(data()$time)
     tags$div(textInput('yearBaseSumm', label = 'Base year:', value = yrs[1]))
   })
     
-  output$specCheckbox <- renderUI({
-    if (input$tabsel == "misc_census") {
-      species <- c(as.integer(unique(miscData$art)))
-      species_string <- paste0(species, collapse = ",")
-      spdat <- getSpeciesNames(poolParams, species_string)
-      speclist <- as.list(spdat$art)
-      names(speclist) <- as.list(spdat$arthela)
-    }
-
-    else {
-      if (input$tabsel == "totalstandard") {
-        projectId <- project_id_std
-        projectActivityId <- project_activity_id_std
-      }
-      else if (input$tabsel == "totalsommar_pkt") {
-        projectId <- project_id_punkt
-        projectActivityId <- project_activity_id_summer
-      } 
-      else if (input$tabsel == "totalvinter_pkt") {
-        projectId <- project_id_punkt
-        projectActivityId <- project_activity_id_winter
-      } 
-      else if (input$tabsel == "total_iwc_januari" || input$tabsel == "total_iwc_september") {
-        projectId <- project_id_iwc
-        projectActivityId <- project_activity_id_iwc
-      } 
-      # else if (input$tabsel == "totalvinter_pkt") { # what is this else if?
-      #   projectId <- project_id_punkt
-      #   projectActivityId <- project_activity_id_iwc
-      # } 
-      else if (input$tabsel == "totalkustfagel200") {
-        projectId <- project_id_kust
-        projectActivityId <- project_activity_id_kust
+  # show species list from selected choice of database
+  observe({ input$misc_data
+    output$specCheckbox <- renderUI({
+      if (input$tabsel == "misc_census") {
+          shiny::validate(
+            need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
+          )
+          species <- c(as.integer(unique(miscData$art)))
+          species_string <- paste0(species, collapse = ",")
+          spdat <- getSpeciesNames(poolParams, species_string)
+          speclist <- as.list(spdat$art)
+          names(speclist) <- as.list(spdat$arthela)
       }
   
-      specsSN <- getUniquesSpeciesFromScheme(projectActivityId)
-      
-      nbSp <- nrow(specsSN)
-  
-      vSpecies <- vector()
-      for (iSp  in 1:nbSp) {
-        # check if species name exists in both objects. If not, print validation error
-        shiny::validate(
-          need(str_trim(specsSN$name[iSp]) %in% attributes(speciesMatch)$names, paste0("ERROR in retrieving the species items. This item can't be found in the lists module: ", specsSN$name[iSp]))
-        )
-        vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
-      }
-      vSpecies <- sort(vSpecies)
-  
-      specnames <- spdat$arthela[match(vSpecies,spdat$art)]
-      
-      speclist <- as.list(vSpecies)
-      names(speclist) <- specnames
-    }
+      else if (input$databasechoice == 'mongodb') {
+        if (input$tabsel == "totalstandard") {
+          projectId <- project_id_std
+          projectActivityId <- project_activity_id_std
+        }
+        else if (input$tabsel == "totalsommar_pkt") {
+          projectId <- project_id_punkt
+          projectActivityId <- project_activity_id_summer
+        } 
+        else if (input$tabsel == "totalvinter_pkt") {
+          projectId <- project_id_punkt
+          projectActivityId <- project_activity_id_winter
+        } 
+        else if (input$tabsel == "total_iwc_januari" || input$tabsel == "total_iwc_september") {
+          projectId <- project_id_iwc
+          projectActivityId <- project_activity_id_iwc
+        } 
+        # else if (input$tabsel == "totalvinter_pkt") { # what is this else if?
+        #   projectId <- project_id_punkt
+        #   projectActivityId <- project_activity_id_iwc
+        # } 
+        else if (input$tabsel == "totalkustfagel200") {
+          projectId <- project_id_kust
+          projectActivityId <- project_activity_id_kust
+        }
     
-    tags$div(tags$div(strong(p("Select species"))),
-             tags$div(align = 'left',
-                      class = 'multicol6',
-                      checkboxGroupInput(inputId = 'indspecsp', label = NULL,
-                                         choices = speclist,
-                                         selected = NULL)
-             )
-    )
+        specsSN <- getUniquesSpeciesFromScheme(projectActivityId)
+        
+        nbSp <- nrow(specsSN)
+    
+        vSpecies <- vector()
+        for (iSp  in 1:nbSp) {
+          # check if species name exists in both objects. If not, print validation error
+          shiny::validate(
+            need(str_trim(specsSN$name[iSp]) %in% attributes(speciesMatch)$names, paste0("ERROR in retrieving the species items. This item can't be found in the lists module: ", specsSN$name[iSp]))
+          )
+          vSpecies[iSp] <- speciesMatch[[str_trim(specsSN$name[iSp])]]
+        }
+        vSpecies <- sort(vSpecies)
+    
+        specnames <- spdat$arthela[match(vSpecies,spdat$art)]
+        
+        speclist <- as.list(vSpecies)
+        names(speclist) <- specnames
+      }
+      
+      else {
+        queryart <- sprintf("select distinct art
+                  from %s", input$tabsel)
+        arts <- dbGetQuery(pool, queryart)
+        
+        speclist <- as.list(sort(arts$art[arts$art != '000']))
+        specnames <- spdat$arthela[match(speclist,spdat$art)]
+        names(speclist) <- specnames
+      }
+      
+      tags$div(tags$div(strong(p("Select species"))),
+               tags$div(align = 'left',
+                        class = 'multicol6',
+                        checkboxGroupInput(inputId = 'indspecsp', label = NULL,
+                                           choices = speclist,
+                                           selected = NULL)
+               )
+      )
+    })
   })
   
   output$specCheckboxAnalyze <- renderUI({

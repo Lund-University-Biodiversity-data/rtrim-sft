@@ -741,6 +741,17 @@ server <- function(input, output, session) {
     updateCheckboxGroupInput(inputId = 'indspecsp', selected = vcustomSpecs)
     
     print(paste('Your set contains the following species:', list(vcustomSpecs)))
+    
+    notfound <- c()
+    for (s in 1:length(vcustomSpecs)) {
+      if (!vcustomSpecs[s] %in% input$indspecsp) {
+        notfound <- c(notfound, vcustomSpecs[s])
+      }
+    }
+    if (length(notfound) > 0) {
+      print(paste('These species of your set were not found in the species list:', list(notfound)))
+    }
+    
   })
   
   # output species selection in tab 'Analyze data'

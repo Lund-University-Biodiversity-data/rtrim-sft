@@ -737,7 +737,7 @@ server <- function(input, output, session) {
     )
     # error message in case entered base year is out of range of the data
     shiny::validate(
-      need(input$yearBaseSumm > range(data()$time)[1] & input$yearBaseSumm < range(data()$time)[2], paste0("ERROR: Base year must be in range: ", range(data()$time)[1], " - ", range(data()$time)[2]))
+      need(input$yearBaseSumm >= range(data()$time)[1] & input$yearBaseSumm <= range(data()$time)[2], paste0("ERROR: Base year must be in range: ", range(data()$time)[1], " - ", range(data()$time)[2]))
     )
 
     useShorterPeriods <- input$shorterPeriodSumm

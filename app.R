@@ -1135,8 +1135,6 @@ server <- function(input, output, session) {
     specarts <- c()
     for (spec in 1:length(speclist)) {
       rank <- speclist[spec]
-      print(rank)
-      print(spdat$art[spdat$rank == rank])
       specnames[spec] <- spdat$arthela[spdat$rank == rank]
       specarts[spec] <- as.integer(spdat$art[spdat$rank == rank])
     }

@@ -8,3 +8,4 @@
 *.csv
 lib/config.R
 !misc_data_upload_template.xlsx
+!species_set_template.xlsx

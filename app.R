@@ -394,14 +394,7 @@ ui <- fluidPage(theme = 'flatly',
                                                        `World` = "WD"),
                                         selected = "SE", inline = TRUE),
                            hr(),
-                           fluidRow(column(6,
-                                           actionButton("sendquerysumm", "Generate excel files")
-                                           ),
-                                    column(6,
-                                           p('All generated files can be found here:'),
-                                           tags$a("Download files folder", href=url_extract, target="_blank", rel="noopener noreferrer")
-                                           )
-                                    ),
+                           actionButton("sendquerysumm", "Generate excel files"),
                            hr(),
                            p('Download the generated files:'),
                            fluidRow(column(4,

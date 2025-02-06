@@ -255,21 +255,38 @@ ui <- fluidPage(theme = 'flatly',
                                                                                         `Mountains (Fjällen) n=142` = 'fjl142',
                                                                                         `Southern routes (<60 N)` = 'S',
                                                                                         `Northern routes (>60 N)` = 'N',
-                                                                                        `Individual routes` = 'ind'
+                                                                                        `Individual routes` = 'ind',
+                                                                                        `Select on map` = 'karta'
                                                                                         ),
-                                                                         selected = 'all')),
+                                                                         selected = 'all'),
+                                                            conditionalPanel(condition = 'input.specrtAnalyze == "karta"',
+                                                                             p('Define your area of interest by clicking on the map to set the vertices of a polygon. You can turn off the existing point data layers at the top right of the map.
+                                                                               To start over and remove all points, click "Clear polygon". To remove only the last point you set, click "Undo one". When you are done, confirm your selection by clicking "Select routes".'))
+                                                            ),
                                                      column(8,
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "lan"',
                                                                              uiOutput('lanCheckboxAnalyze')),
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "lsk"',
                                                                              uiOutput('lskCheckboxAnalyze')),
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "fjl104" || input.specrtAnalyze == "fjl142" || input.specrtAnalyze == "fjl104_inv" || input.specrtAnalyze == "fjl142_inv"',
-                                                                             uiOutput('fjlCheckboxAnalyze'))
+                                                                             uiOutput('fjlCheckboxAnalyze')),
+                                                            conditionalPanel(condition = 'input.specrtAnalyze == "karta"',
+                                                                             leafletOutput("map"),
+                                                                             fluidRow(column(2,
+                                                                                             actionButton('clearMap', 'Clear polygon')),
+                                                                                      column(2,
+                                                                                             actionButton('clearOne', 'Undo one')),
+                                                                                      column(2,
+                                                                                             actionButton('selectmap', 'Select routes')),
+                                                                                      column(6,
+                                                                                             withSpinner(verbatimTextOutput('mapsel'), proxy.height = '100px'))
+                                                                                      ))
                                                      )
                                             ),
                                             fluidRow(column(12,
                                                             conditionalPanel(condition = 'input.specrtAnalyze == "ind"',
-                                                                             uiOutput('indrtCheckboxAnalyze')))
+                                                                            uiOutput('indrtCheckboxAnalyze')
+                                                                            ))
                                             )
                            ),
                            conditionalPanel(condition = 'input.tabsel == "total_iwc_januari" || input.tabsel == "total_iwc_september"',
@@ -280,22 +297,57 @@ ui <- fluidPage(theme = 'flatly',
                                                                                         `Inland only (ki=I)` = 'inland',
                                                                                         `Eastern coastal (ev=E & ki=K)` = 'east',
                                                                                         `Western coastal (ev=V & ki=K)` = 'west',
-                                                                                        `Counties (län)` = 'lan'),
-                                                                         selected = 'all')),
+                                                                                        `Counties (län)` = 'lan',
+                                                                                        `Select on map` = 'karta'
+                                                                                        ),
+                                                                         selected = 'all'),
+                                                            conditionalPanel(condition = 'input.specrtIWCAnalyze == "karta"',
+                                                                             p('Define your area of interest by clicking on the map to set the vertices of a polygon. You can turn off the existing point data layers at the top right of the map.
+                                                                               To start over and remove all points, click "Clear polygon". To remove only the last point you set, click "Undo one". When you are done, confirm your selection by clicking "Select routes".'))
+                                                            ),
                                                      column(8,
                                                             conditionalPanel(condition = 'input.specrtIWCAnalyze == "lan"',
-                                                                             uiOutput('lanIWCCheckboxAnalyze')))
+                                                                             uiOutput('lanIWCCheckboxAnalyze')),
+                                                            conditionalPanel(condition = 'input.specrtIWCAnalyze == "karta"',
+                                                                             leafletOutput("mapIWC"),
+                                                                             fluidRow(column(2,
+                                                                                             actionButton('clearMap', 'Clear polygon')),
+                                                                                      column(2,
+                                                                                             actionButton('clearOne', 'Undo one')),
+                                                                                      column(2,
+                                                                                             actionButton('selectmap', 'Select routes')),
+                                                                                      column(6,
+                                                                                             withSpinner(verbatimTextOutput('mapselIWC'), proxy.height = '100px'))
+                                                                             ))
+                                                            )
                                             )
                            ),
                            conditionalPanel(condition = 'input.tabsel == "totalvinter_pkt" || input.tabsel == "totalsommar_pkt"',
                                             fluidRow(column(4,
                                                             radioButtons('specrtPKTAnalyze', label = 'Select sites to include',
                                                                          choices = list(`All availble sites` = 'all',
-                                                                                        `Counties (län)` = 'lan'),
-                                                                         selected = 'all')),
+                                                                                        `Counties (län)` = 'lan',
+                                                                                        `Select on map` = 'karta'),
+                                                                         selected = 'all'),
+                                                            conditionalPanel(condition = 'input.specrtPKTAnalyze == "karta"',
+                                                                             p('Define your area of interest by clicking on the map to set the vertices of a polygon. You can turn off the existing point data layers at the top right of the map.
+                                                                               To start over and remove all points, click "Clear polygon". To remove only the last point you set, click "Undo one". When you are done, confirm your selection by clicking "Select routes".'))
+                                                     ),
                                                      column(8,
                                                             conditionalPanel(condition = 'input.specrtPKTAnalyze == "lan"',
-                                                                             uiOutput('lanPKTCheckboxAnalyze')))
+                                                                             uiOutput('lanPKTCheckboxAnalyze')),
+                                                            conditionalPanel(condition = 'input.specrtPKTAnalyze == "karta"',
+                                                                             leafletOutput("mapPKT"),
+                                                                             fluidRow(column(2,
+                                                                                             actionButton('clearMap', 'Clear polygon')),
+                                                                                      column(2,
+                                                                                             actionButton('clearOne', 'Undo one')),
+                                                                                      column(2,
+                                                                                             actionButton('selectmap', 'Select routes')),
+                                                                                      column(6,
+                                                                                             withSpinner(verbatimTextOutput('mapselPKT'), proxy.height = '100px'))
+                                                                             ))
+                                                            )
                                             )
                            ),
                            conditionalPanel(condition = 'input.tabsel == "totalkustfagel200"',
@@ -304,14 +356,29 @@ ui <- fluidPage(theme = 'flatly',
                                                                          choices = list(`All available routes` = 'all',
                                                                                         `Counties (län)` = 'lan',
                                                                                         #`Province (landskap)` = 'lsk',
-                                                                                        `Individual routes` = 'ind'
-                                                                         ),
-                                                                         selected = 'all')),
+                                                                                        `Individual routes` = 'ind',
+                                                                                        `Select on map` = 'karta'),
+                                                                         selected = 'all'),
+                                                     conditionalPanel(condition = 'input.specrtKustAnalyze == "karta"',
+                                                                      p('Define your area of interest by clicking on the map to set the vertices of a polygon. You can turn off the existing point data layers at the top right of the map.
+                                                                               To start over and remove all points, click "Clear polygon". To remove only the last point you set, click "Undo one". When you are done, confirm your selection by clicking "Select routes".'))
+                                                     ),
                                                      column(8,
                                                             conditionalPanel(condition = 'input.specrtKustAnalyze == "lan"',
-                                                                             uiOutput('lanKustCheckboxAnalyze'))
+                                                                             uiOutput('lanKustCheckboxAnalyze')),
                                                             # conditionalPanel(condition = 'input.specrtKustAnalyze == "lsk"',
-                                                            #                  uiOutput('lskKustCheckboxAnalyze'))
+                                                            #                  uiOutput('lskKustCheckboxAnalyze')),
+                                                            conditionalPanel(condition = 'input.specrtKustAnalyze == "karta"',
+                                                                             leafletOutput("mapKust"),
+                                                                             fluidRow(column(2,
+                                                                                             actionButton('clearMap', 'Clear polygon')),
+                                                                                      column(2,
+                                                                                             actionButton('clearOne', 'Undo one')),
+                                                                                      column(2,
+                                                                                             actionButton('selectmap', 'Select routes')),
+                                                                                      column(6,
+                                                                                             withSpinner(verbatimTextOutput('mapselKust'), proxy.height = '100px'))
+                                                                             ))
                                                      )
                                             ),
                                             fluidRow(column(12,
@@ -472,7 +539,9 @@ server <- function(input, output, session) {
            fjl142 = regStdat$internalSiteId[regStdat$fjall142==input$fjlspecrtAnalyze],
            S = regStdat$internalSiteId[regStdat$internalSiteId%in%rcdat$site[rcdat$lat < 60]],
            N = regStdat$internalSiteId[regStdat$internalSiteId%in%rcdat$site[rcdat$lat > 60]],
-           ind = input$indspecrtAnalyze)
+           ind = input$indspecrtAnalyze,
+           karta = regStdat$internalSiteId[regStdat$internalSiteId%in%routeselKarta()]
+           )
   })
   
 
@@ -483,14 +552,16 @@ server <- function(input, output, session) {
            inland = regIWCdat$site[regIWCdat$ki=='I'],
            east = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='E'],
            west = regIWCdat$site[regIWCdat$ki=='K' & regIWCdat$ev=='V'],
-           lan = regIWCdat$site[regIWCdat$lan%in%input$lanspecrtIWCAnalyze])
+           lan = regIWCdat$site[regIWCdat$lan%in%input$lanspecrtIWCAnalyze],
+           karta = regIWCdat$site[regIWCdat$site%in%routeselKarta()])
   })
   
 
   specroutePKTAnalyze <- reactive({
     switch(input$specrtPKTAnalyze,
            all = regPKTdat$site,
-           lan = regPKTdat$site[regPKTdat$lan%in%input$lanspecrtPKTAnalyze])
+           lan = regPKTdat$site[regPKTdat$lan%in%input$lanspecrtPKTAnalyze],
+           karta = regPKTdat$site[regPKTdat$site%in%routeselKarta()])
   })
   
   
@@ -498,7 +569,8 @@ server <- function(input, output, session) {
     switch(input$specrtKustAnalyze,
            all = regKustdat$site,
            lan = regKustdat$site[regKustdat$lan%in%input$lanspecrtKustAnalyze],
-           ind = input$indspecrtKustAnalyze)
+           ind = input$indspecrtKustAnalyze,
+           karta = regKustdat$site[regKustdat$site%in%routeselKarta()])
   })
   
   
@@ -554,7 +626,7 @@ server <- function(input, output, session) {
       excl <- c()
       miscData4 <- miscData3
       for (ob in 1:nrow(miscData3)) {
-        if (!as.integer(miscData3$species[ob]) %in% specart()) { 
+        if (!as.integer(miscData3$species[ob]) %in% input$indspecsp) { 
           excl <- c(excl, ob)
         }
       }
@@ -823,10 +895,12 @@ server <- function(input, output, session) {
       else if (filter == 'ind') {
         sel <- input$indspecrtAnalyze
       }
-      else if (filter == 'map') {
-        # ADD WHEN MERGED WITH MAP OPTION VERSION
+      else if (filter == 'karta') {
         # coordinates of polygon
-        # sel <- coords
+        sel <- c()
+        for (co in 1:nrow(aoi[[1]])) {
+          sel <- c(sel, aoi[[1]][co,])
+        }
       }
     }
     else if (input$tabsel == 'total_iwc_januari' | input$tabsel == 'total_iwc_september') {
@@ -836,6 +910,13 @@ server <- function(input, output, session) {
       if (filter == 'lan') {
         sel <- input$lanspecrtIWCAnalyze
       }
+      else if (filter == 'karta') {
+        # coordinates of polygon
+        sel <- c()
+        for (co in 1:nrow(aoi[[1]])) {
+          sel <- c(sel, aoi[[1]][co,])
+        }
+      }
     }
     else if (input$tabsel == 'totalvinter_pkt' | input$tabsel == 'totalsommar_pkt') {
       filter <- input$specrtPKTAnalyze
@@ -843,6 +924,13 @@ server <- function(input, output, session) {
       sites <- specroutePKTAnalyze()
       if (filter == 'lan') {
         sel <- input$lanspecrtPKTAnalyze
+      }
+      else if (filter == 'karta') {
+        # coordinates of polygon
+        sel <- c()
+        for (co in 1:nrow(aoi[[1]])) {
+          sel <- c(sel, aoi[[1]][co,])
+        }
       }
     }
     else if (input$tabsel == 'totalkustfagel200') {
@@ -854,6 +942,13 @@ server <- function(input, output, session) {
       }
       else if (filter == 'ind') {
         sel <- input$indspecrtKustAnalyze
+      }
+      else if (filter == 'karta') {
+        # coordinates of polygon
+        sel <- c()
+        for (co in 1:nrow(aoi[[1]])) {
+          sel <- c(sel, aoi[[1]][co,])
+        }
       }
     }
     else if (input$tabsel == 'misc_census') {
@@ -1239,6 +1334,7 @@ server <- function(input, output, session) {
     )
   })
   
+
   # define outputs for filter checkboxes for kustfagel in tab 'analyze data'
   output$lanKustCheckboxAnalyze <- renderUI({
     lans <- sort(unique(regKustdat$lan[nchar(regKustdat$lan) > 0]))
@@ -1279,6 +1375,193 @@ server <- function(input, output, session) {
     )
   })
 
+
+  # map for selection of individual routes/sites
+  observe({
+    input$sendquery
+    output$map <- renderLeaflet({ 
+      leaflet() |> 
+        addTiles() |> 
+        setView(15, 63, zoom = 4) |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
+        addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
+    }) 
+  })
+  
+  observe({
+    input$sendquery
+    output$mapIWC <- renderLeaflet({ 
+      leaflet() |> 
+        addTiles() |> 
+        setView(15, 63, zoom = 4) |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
+        addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
+    })
+  })
+  
+  observe({
+    input$sendquery
+    output$mapPKT <- renderLeaflet({ 
+      leaflet() |> 
+        addTiles() |> 
+        setView(15, 63, zoom = 4) |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
+        addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
+    })
+  })
+  
+  observe({
+    input$sendquery
+    output$mapKust <- renderLeaflet({ 
+      leaflet() |> 
+        addTiles() |> 
+        setView(15, 63, zoom = 4) |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
+        addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
+    })
+  })
+  
+  # draw polygon on map
+  observe({
+    if (input$tabsel == 'totalstandard') {
+      req(input$map_click)
+      mapevent <- input$map_click
+      map <- 'map'
+    }
+    else if (input$tabsel == 'total_iwc_januari' | input$tabsel == 'total_iwc_september') {
+      req(input$mapIWC_click)
+      mapevent <- input$mapIWC_click
+      map <- 'mapIWC'
+    }
+    else if (input$tabsel == 'totalsommar_pkt' | input$tabsel == 'totalvinter_pkt') {
+      req(input$mapPKT_click)
+      mapevent <- input$mapPKT_click
+      map <- 'mapPKT'
+    }
+    else if (input$tabsel == 'totalkustfagel200') {
+      req(input$mapKust_click)
+      mapevent <- input$mapKust_click
+      map <- 'mapKust'
+    }
+    else {
+      req(input$mapXXX_click)
+    }
+      
+    if (!exists('lng') & !exists('lat')) {
+      lng <<- c(mapevent$lng)
+      lat <<- c(mapevent$lat)
+      coords <- data.frame(lng, lat)
+      print(coords)
+      proxy <- leafletProxy(map)
+      proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+    }
+    else {
+      lng <<- c(lng, mapevent$lng)
+      lat <<- c(lat, mapevent$lat)
+      coords <- data.frame(lng, lat)
+      print(coords)
+      proxy <- leafletProxy(map)
+      proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+      proxy %>% addPolygons(layerId = 'area', data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+    }
+  })
+  
+  # clear polygon from map
+  observe({
+    input$clearMap
+    input$sendquery
+    if (input$tabsel == 'totalstandard') {
+      map <- 'map'
+    }
+    else if (input$tabsel == 'total_iwc_januari' | input$tabsel == 'total_iwc_september') {
+      map <- 'mapIWC'
+    }
+    else if (input$tabsel == 'totalsommar_pkt' | input$tabsel == 'totalvinter_pkt') {
+      map <- 'mapPKT'
+    }
+    else if (input$tabsel == 'totalkustfagel200') {
+      map <- 'mapKust'
+    }
+    else {
+      req(input$mapXXX)
+    }
+    proxy <- leafletProxy(map)
+    proxy %>% clearShapes()
+    lng <<- c()
+    lat <<- c()
+  })
+  
+  # clear polygon from map
+  observe({
+    input$clearOne
+    req(lat, lng)
+    lng <<- lng[1:(length(lng)-1)]
+    lat <<- lat[1:(length(lat)-1)]
+    coords <- data.frame(lng, lat)
+    if (input$tabsel == 'totalstandard') {
+      map <- 'map'
+    }
+    else if (input$tabsel == 'total_iwc_januari' | input$tabsel == 'total_iwc_september') {
+      map <- 'mapIWC'
+    }
+    else if (input$tabsel == 'totalsommar_pkt' | input$tabsel == 'totalvinter_pkt') {
+      map <- 'mapPKT'
+    }
+    else if (input$tabsel == 'totalkustfagel200') {
+      map <- 'mapKust'
+    }
+    proxy <- leafletProxy(map)
+    proxy %>% clearShapes()
+    proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+    proxy %>% addPolygons(layerId = 'area', data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+  })
+  
+  # select routes based on polygon the user defined
+  routeselKarta <- eventReactive(input$selectmap,{
+    # error message for if no area was defined
+    shiny::validate(
+      need(length(lng) > 2  & length(lat) > 2, 'There are not enough points set on the map to create a polygon.')
+    )
+    # create polygon
+    polyCoords <- c()
+    for (p in 1:length(lng)) {
+      polyCoords <- rbind(polyCoords, c(lng[p], lat[p]))
+    }
+    polyCoords <- rbind(polyCoords, c(lng[1], lat[1]))
+    aoi <<- st_polygon(list(polyCoords))
+    # create multipoint object
+    pointcoords <- data.frame(rcdat[, 2:3])
+    routes <- st_multipoint(as.matrix(pointcoords))
+    # use created polygon to select sites
+    routesel <- st_intersection(routes, aoi)
+    sitesel <- rcdat$site[rcdat$lon %in% routesel[,1] & rcdat$lat %in% routesel[,2]]
+  })
+  
+  # give the user feedback about route selection after they clicked the action button
+  output$mapsel <- renderPrint({
+    paste0('A total of ', length(routeselKarta()), ' routes have been selected.')
+  })
+  
+  output$mapselIWC <- renderPrint({
+    paste0('A total of ', length(routeselKarta()), ' routes have been selected.')
+  })
+  
+  output$mapselPKT <- renderPrint({
+    paste0('A total of ', length(routeselKarta()), ' routes have been selected.')
+  })
+
+  output$mapselKust <- renderPrint({
+    paste0('A total of ', length(routeselKarta()), ' routes have been selected.')
+  })
+  
   
   # output$testtext <- renderText({
   #   as.character('od'%in%input$trimset)})

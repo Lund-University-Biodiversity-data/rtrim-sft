@@ -86,9 +86,16 @@ install.packages("openssl")
 TO BE TRIED TO AVOID struggling with the dependencies !!
 install.packages("shinyjs", dependencies=TRUE)
 
+install.packages("shinyjs", dependencies=TRUE)
+sudo apt-get install libgdal-dev
+sudo apt-get install gfortran
+install.packages("sf", dependencies=TRUE)
+sudo apt-get install libudunits2-dev
 
 
 in order to get the original-martin-shiny up and running again, some packages had to be reinstalled as well :
 install.packages("lazyeval", dependencies=TRUE)
 install.packages("DiagrammeR", dependencies=TRUE)
 install.packages("tibble", dependencies=TRUE)
+
+

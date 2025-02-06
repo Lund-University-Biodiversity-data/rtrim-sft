@@ -88,6 +88,10 @@ ui <- fluidPage(theme = 'flatly',
                                 # padding-bottom: 1px;
                             #    # text-align: center;
                             # }
+                            .keyButton {
+                                color: white;
+                                background-color: steelblue;
+                            }
                             "
                     )
                   ),
@@ -199,7 +203,7 @@ ui <- fluidPage(theme = 'flatly',
                                            )
                                     ),
                            hr(),
-                           actionButton("sendquery", "Submit query"),
+                           actionButton("sendquery", "Submit query", class = "keyButton"),
                            hr(),
                            p('Download the generated files:'),
                            fluidRow(column(4,
@@ -413,7 +417,7 @@ ui <- fluidPage(theme = 'flatly',
                            ),
                            hr(),
                            fluidRow(column(6,
-                                           actionButton("sendanalysis", "Run analysis")),
+                                           actionButton("sendanalysis", "Run analysis", class = "keyButton")),
                                     column(6,
                                            downloadButton("downloadAnalysis", "Download rdata")
                                     )
@@ -469,7 +473,7 @@ ui <- fluidPage(theme = 'flatly',
                                                        `World` = "WD"),
                                         selected = "SE", inline = TRUE),
                            hr(),
-                           actionButton("sendquerysumm", "Generate excel files"),
+                           actionButton("sendquerysumm", "Generate excel files", class = "keyButton"),
                            hr(),
                            p('Download the generated files:'),
                            fluidRow(column(4,

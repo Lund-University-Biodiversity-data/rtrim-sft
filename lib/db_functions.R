@@ -352,15 +352,15 @@ getSpeciesDataParams<- function (pool) {
 }
 
 getSites <- function(pool) {
-	queryrc <- "select karta as site, mitt_wgs84_lat as lat
+	queryrc <- "select karta as site, mitt_wgs84_lon as lon, mitt_wgs84_lat as lat
             from 
             standardrutter_koordinater
             union all
-            select pk.site, tp.lat
+            select pk.site, tp.lon, tp.lat
             from
             (select persnr || '_' || rnr as site, kartatx
             from punktrutter) as pk,
-            (select kartatx, wgs84_lat as lat
+            (select kartatx, wgs84_lon as lon, wgs84_lat as lat
             from
             koordinater_mittpunkt_topokartan) as tp
             where pk.kartatx=tp.kartatx"

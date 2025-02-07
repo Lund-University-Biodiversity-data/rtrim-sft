@@ -348,7 +348,7 @@ DoQuery <- function (pool=NULL, tab=NULL, spec=NULL, specper=NULL, selyrs=NULL,
 
   ## Export data
   #if (1%in%savedat){
-  dataMerge <<- dat
+  #dataMerge <<- dat
   #}
   if (2%in%savedat){
     write.csv(dat, file = paste0(path_project_extract, 'psql_', filename, '_', tab, '_', gsub('[ :]', '_', round(Sys.time(), 0)), '.csv'),
@@ -390,7 +390,7 @@ RunTRIMmodel <- function(dat = NULL, modeltype = NULL, sp_to_run = NULL,
   sp_to_run_names <- speciesdat$arthela[match(sp_to_run, as.integer(speciesdat$art))]
   
   ## Prepare output-object ##
-  output <<- vector(mode = 'list', length = length(sp_to_run))
+  output <- vector(mode = 'list', length = length(sp_to_run))
 
   names(output) <- paste0('Art_', sp_to_run)
 
@@ -418,9 +418,9 @@ RunTRIMmodel <- function(dat = NULL, modeltype = NULL, sp_to_run = NULL,
   output <- output[oix]
   
   ## Export results
-  if (1%in%saveresult){
-    trimOutput <<- output
-  }
+  # if (1%in%saveresult){
+  #   trimOutput <<- output
+  # }
   if (2%in%saveresult){
     save(output, file = paste0(path_project_extract, filename, '_', tabell, '_', gsub('[ :]', '_', round(Sys.time(), 0)), '.rdata'))
   }
@@ -837,7 +837,7 @@ ExtractRes <- function(obj, tabell, base = 1998, yrrange){
 
 
 #### MakeXlsFile ####
-MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NULL, specieslanguage = 'SE', homepage = TRUE){
+MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NULL, specieslanguage = 'SE', homepage = TRUE, params = NULL){
   appOutput <- list()
   nsyst <- unname(sapply(obj[1], function(x) {length(x$Results)}))
   # if multiple schemes were selected, one combined Figurritning file is created

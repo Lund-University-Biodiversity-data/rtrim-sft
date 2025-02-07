@@ -1274,9 +1274,9 @@ getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sites
 exportSaveData <- function (dataMerge, savedat, filename, tab = "totalstandard") {
 
 	## Export data
-	if (1%in%savedat){
-		dataMerge <<- dataMerge
-	}
+	# if (1%in%savedat){
+	# 	dataMerge <<- dataMerge
+	# }
 	if (2%in%savedat){
 		write.csv(dataMerge, file = paste0(path_project_extract, 'mongo_', filename, '_', tab, '_', gsub('[ :]', '_', Sys.time()), '.csv'),	          row.names = FALSE)
 	}

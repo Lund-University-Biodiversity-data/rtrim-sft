@@ -188,7 +188,7 @@ ui <- fluidPage(theme = 'flatly',
                            fluidRow(column(6,
                                            checkboxGroupInput('savedat',
                                               label = 'Data output to (will always be available in app)?', 
-                                              choices = list(`R Workspace` = 1,
+                                              choices = list(#`R Workspace` = 1,
                                                              `.csv-file` = 2,
                                                              `.csv-file (xls-friendly)` = 3,
                                                              `.rdata-file` = 4),
@@ -403,7 +403,7 @@ ui <- fluidPage(theme = 'flatly',
                            fluidRow(column(6,
                                            checkboxGroupInput('saveresult',
                                                               label = 'Result output to (will always be available in app)?', 
-                                                              choices = list(`R Workspace (named as trimOutput)` = 1,
+                                                              choices = list(#`R Workspace (named as trimOutput)` = 1,
                                                                              `.rdata-file` = 2,
                                                                              `Save graphs as pdf` = 3),
                                                               selected = c(1, 2, 3), inline = TRUE)
@@ -607,9 +607,9 @@ server <- function(input, output, session) {
       
       # select time period by excluding rows of years > or < than selected period
       excl <- c()
-      miscData2 <- miscData
-      for (ob in 1:nrow(miscData)) {
-        if (miscData$yr[ob] < input$selyrs[1] || miscData$yr[ob] > input$selyrs[2]) {
+      miscData2 <- miscData()
+      for (ob in 1:nrow(miscData())) {
+        if (miscData()$yr[ob] < input$selyrs[1] || miscData()$yr[ob] > input$selyrs[2]) {
           excl <- c(excl, ob)
         }
       }
@@ -713,7 +713,7 @@ server <- function(input, output, session) {
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
       speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, input$indspecsp)
 
-      dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
+      dataMerge <- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
 
       #output$downloadData <- downloadHandler(
       #  content = function(file) {
@@ -787,8 +787,6 @@ server <- function(input, output, session) {
     shiny::validate(
       need(nrow(dat) > 0, "There was no data found that matches your selection.")
     )
-    dat2 <<- dat
-    spartA <<- input$indspecspAnalyze
     spAix <- input$indspecspAnalyze %in% as.integer(unique(dat$species))
     styr <- if(input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
                 NULL
@@ -852,11 +850,11 @@ server <- function(input, output, session) {
     # divide species into ones that gave results and ones that didn't
     worked <- c()
     not <- c()
-    for (s in 1:length(trimOutput)) {
-      if ('trim' %in% class(trimOutput[[s]]$value)) {
-        worked <- c(worked, gsub('Art_', '', names(trimOutput)[s]))
+    for (s in 1:length(resultout())) {
+      if ('trim' %in% class(resultout()[[s]]$value)) {
+        worked <- c(worked, gsub('Art_', '', names(resultout())[s]))
       } else {
-        not <- c(not, gsub('Art_', '', names(trimOutput)[s]))
+        not <- c(not, gsub('Art_', '', names(resultout())[s]))
       }
     }
     if (is.null(worked)) {
@@ -969,12 +967,10 @@ server <- function(input, output, session) {
     mat[is.na(mat)] <- ''
     params <- data.frame(mat)
     colnames(params) <- list('database', 'scheme', 'subscheme', 'period', 'time range', 'species (with result)', 'species (without result)', 'North-South', 'corrections', 'modeltype', 'trimsettings', 'spatial filter', 'selected', 'sites selected')
-    params <<- params
-
     
     # use data frame 'params' in DoSummarizeResult() function to add it as a sheet in the excel output 'Tabeller'
     # create excel files
-    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, lang=input$langSumm) 
+    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, lang=input$langSumm, params = params) 
 
   })
 
@@ -1001,20 +997,37 @@ server <- function(input, output, session) {
   output$contents <- renderTable({
     file <- input$misc_data
     req(file)
-    
+
     ext <- tools::file_ext(file$datapath)
-    
+
     if (ext == "csv") {
-      miscData <<- read.csv(file$datapath, header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
+      miscData <- read.csv(file$datapath, header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
     }
     else if (ext == "xlsx" | ext == "xls") {
-      miscData <<- read_excel(file$datapath, col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
+      miscData <- read_excel(file$datapath, col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
     }
     else {
       print("ERROR: Please upload a csv file or an excel file")
     }
     
     print(head(miscData))
+  })
+  
+  miscData <- eventReactive(input$misc_data,{
+    file <- input$misc_data
+    req(file)
+    
+    ext <- tools::file_ext(file$datapath)
+    
+    if (ext == "csv") {
+      miscData <- read.csv(file$datapath, header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
+    }
+    else if (ext == "xlsx" | ext == "xls") {
+      miscData <- read_excel(file$datapath, col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
+    }
+    else {
+      print("ERROR: Please upload a csv file or an excel file")
+    }
   })
   
   
@@ -1038,12 +1051,13 @@ server <- function(input, output, session) {
   observe({input$misc_data
     output$yrSlider <- renderUI({
       if (input$tabsel == "misc_census") {
-          shiny::validate(
-            need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
-          )
-          sliderInput(inputId = 'selyrs', label = 'Set years',
-                    min = min(miscData$yr), max = max(miscData$yr), value = c(min(miscData$yr), max(miscData$yr)),
-                    step = 1, sep = NULL)
+        shiny::validate(
+          need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
+        )
+        
+        sliderInput(inputId = 'selyrs', label = 'Set years',
+                  min = min(miscData()$yr), max = max(miscData()$yr), value = c(min(miscData()$yr), max(miscData()$yr)),
+                  step = 1, sep = NULL)
       }
       else {
         sliderInput(inputId = 'selyrs', label = 'Set years',
@@ -1071,17 +1085,18 @@ server <- function(input, output, session) {
   observe({ input$misc_data
     output$specCheckbox <- renderUI({
       if (input$tabsel == "misc_census") {
-          shiny::validate(
-            need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
-          )
-          species <- c(as.integer(unique(miscData$art)))
-          species_string <- paste0(species, collapse = ",")
-          spdat <- getSpeciesNames(poolParams, species_string)
-          
-          # get a sorted list of the ranks of the species that exist in both objects
-          specranks <- spdat$rank
-          specranks <- sort(specranks)
-          speclist <- as.list(specranks)
+        shiny::validate(
+          need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
+        )
+        
+        species <- c(as.integer(unique(miscData()$art)))
+        species_string <- paste0(species, collapse = ",")
+        spdat <- getSpeciesNames(poolParams, species_string)
+        
+        # get a sorted list of the ranks of the species that exist in both objects
+        specranks <- spdat$rank
+        specranks <- sort(specranks)
+        speclist <- as.list(specranks)
       }
   
       else if (input$databasechoice == 'mongodb') {
@@ -1384,7 +1399,7 @@ server <- function(input, output, session) {
         addTiles() |> 
         setView(15, 63, zoom = 4) |>
         addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
-        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% data()$site], lat = rcdat$lat[rcdat$site %in% data()$site], color = 'red' , radius = 2, group = 'routes with observations') |>
         addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
         addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
     }) 
@@ -1397,7 +1412,7 @@ server <- function(input, output, session) {
         addTiles() |> 
         setView(15, 63, zoom = 4) |>
         addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
-        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% data()$site], lat = rcdat$lat[rcdat$site %in% data()$site], color = 'red' , radius = 2, group = 'routes with observations') |>
         addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
         addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
     })
@@ -1410,7 +1425,7 @@ server <- function(input, output, session) {
         addTiles() |> 
         setView(15, 63, zoom = 4) |>
         addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
-        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% data()$site], lat = rcdat$lat[rcdat$site %in% data()$site], color = 'red' , radius = 2, group = 'routes with observations') |>
         addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
         addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
     })
@@ -1423,7 +1438,7 @@ server <- function(input, output, session) {
         addTiles() |> 
         setView(15, 63, zoom = 4) |>
         addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
-        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% data()$site], lat = rcdat$lat[rcdat$site %in% data()$site], color = 'red' , radius = 2, group = 'routes with observations') |>
         addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
         addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
     })
@@ -1499,7 +1514,7 @@ server <- function(input, output, session) {
     lat <<- c()
   })
   
-  # clear polygon from map
+  # clear last drawn point of polygon from map
   observe({
     input$clearOne
     req(lat, lng)
@@ -1610,21 +1625,21 @@ server <- function(input, output, session) {
     output$downloadCSV <- downloadHandler(
       filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
       content = function(file) {
-        write.csv(dataMerge, file, row.names = FALSE)
+        write.csv(data(), file, row.names = FALSE)
       }
     )
     
     output$downloadCSV2 <- downloadHandler(
       filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
       content = function(file) {
-        write.csv2(dataMerge, file, row.names = FALSE)
+        write.csv2(data(), file, row.names = FALSE)
       }
     )
     
     output$downloadRDATA <- downloadHandler(
       filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
       content = function(file) {
-        save(dataMerge, file = file)
+        save(data(), file = file)
       }
     )
   })
@@ -1636,6 +1651,7 @@ server <- function(input, output, session) {
     # enable the download buttons
       if (2 %in% input$saveresult) {
           shinyjs::enable("downloadAnalysis")
+          result <- resultout()
         }
       if (3 %in% input$saveresult) {
           shinyjs::enable("downloadPDF")
@@ -1644,7 +1660,7 @@ server <- function(input, output, session) {
     output$downloadAnalysis <- downloadHandler(
       filename = paste0(input$filenameRes, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
       content = function(file) {
-        save(trimOutput, file = file)
+        save(result, file = file)
       }
     )
     

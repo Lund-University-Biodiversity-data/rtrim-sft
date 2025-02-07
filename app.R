@@ -195,7 +195,7 @@ ui <- fluidPage(theme = 'flatly',
                                               selected = 1, inline = TRUE)
                                            ),
                                     column(6,
-                                           textInput('filenameDat', label = 'Enter filename:', value = 'Dataextraction_All')
+                                           textInput('filenameDat', label = 'Choose a name for your files:', value = 'Dataextraction_All')
                                            )
                                     ),
                            hr(),
@@ -410,7 +410,7 @@ ui <- fluidPage(theme = 'flatly',
                                                               selected = c(1, 2, 3), inline = TRUE)
                                           ),
                                     column(6,
-                                           textInput('filenameRes', label = 'Enter filename:', value = 'trimOutput'))
+                                           textInput('filenameRes', label = 'Choose a name for your files:', value = 'trimOutput'))
                            ),
                            hr(),
                            fluidRow(column(6,
@@ -438,8 +438,9 @@ ui <- fluidPage(theme = 'flatly',
                   ),
                   tabPanel('Summarize results',
                            hr(),
-                           p('NOTE: This has to be the same filename as used in tab "Analyze data" for all of the monitoring systems you want summaries for.'),
-                           textInput('filenameResSumm', label = 'Enter filename:', value = 'trimOutput'),
+                           textInput('filenameResSumm', label = 'Filename used in analysis:', value = 'trimOutput'),
+                           p(em('NOTE: This has to be the same filename as used in tab "Analyze data" for all of the monitoring systems you want summaries for.')),
+                           hr(),
                            #textInput('yearBaseSumm', label = 'Base year:', value = '2002'),
                            uiOutput('yearBaseSummAuto'),
                            hr(),

@@ -640,7 +640,7 @@ server <- function(input, output, session) {
       colnames(miscData5) <- c("extra", "site", "time", "species", "count")
       if ((nrow(miscData4)-nrow(miscData5)) > 0) {
         output$duplicates <- renderPrint({
-          print(paste(nrow(miscData4)-nrow(miscData5), 'duplicate values were removed.'))
+          print(paste(nrow(miscData4)-nrow(miscData5), 'duplicate values were removed. In these instances, the max values were kept.'))
         })
       }
 
@@ -732,7 +732,7 @@ server <- function(input, output, session) {
       
       if ((nrow(dataMerge)-nrow(resAggregate)) > 0) {
         output$duplicates <- renderPrint({
-          print(paste(nrow(dataMerge)-nrow(resAggregate), 'duplicate values were removed.'))
+          print(paste(nrow(dataMerge)-nrow(resAggregate), 'duplicate values were removed. In these instances, the max values were kept.'))
         })      
       }
 

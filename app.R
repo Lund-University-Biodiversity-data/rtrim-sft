@@ -896,8 +896,8 @@ server <- function(input, output, session) {
       else if (filter == 'karta') {
         # coordinates of polygon
         sel <- c()
-        for (co in 1:nrow(aoi[[1]])) {
-          sel <- c(sel, aoi[[1]][co,])
+        for (co in 1:nrow(Coords$aoi[[1]])) {
+          sel <- c(sel, Coords$aoi[[1]][co,])
         }
       }
     }
@@ -911,8 +911,8 @@ server <- function(input, output, session) {
       else if (filter == 'karta') {
         # coordinates of polygon
         sel <- c()
-        for (co in 1:nrow(aoi[[1]])) {
-          sel <- c(sel, aoi[[1]][co,])
+        for (co in 1:nrow(Coords$aoi[[1]])) {
+          sel <- c(sel, Coords$aoi[[1]][co,])
         }
       }
     }
@@ -926,8 +926,8 @@ server <- function(input, output, session) {
       else if (filter == 'karta') {
         # coordinates of polygon
         sel <- c()
-        for (co in 1:nrow(aoi[[1]])) {
-          sel <- c(sel, aoi[[1]][co,])
+        for (co in 1:nrow(Coords$aoi[[1]])) {
+          sel <- c(sel, Coords$aoi[[1]][co,])
         }
       }
     }
@@ -944,8 +944,8 @@ server <- function(input, output, session) {
       else if (filter == 'karta') {
         # coordinates of polygon
         sel <- c()
-        for (co in 1:nrow(aoi[[1]])) {
-          sel <- c(sel, aoi[[1]][co,])
+        for (co in 1:nrow(Coords$aoi[[1]])) {
+          sel <- c(sel, Coords$aoi[[1]][co,])
         }
       }
     }
@@ -1444,6 +1444,9 @@ server <- function(input, output, session) {
     })
   })
   
+  # Create reactive values to store the coordinates of the polygon for access from multiple functions in local environment
+  Coords <- reactiveValues(lng = NULL, lat = NULL, aoi = NULL)
+  
   # draw polygon on map
   observe({
     if (input$tabsel == 'totalstandard') {
@@ -1469,24 +1472,26 @@ server <- function(input, output, session) {
     else {
       req(input$mapXXX_click)
     }
-      
-    if (!exists('lng') & !exists('lat')) {
-      lng <<- c(mapevent$lng)
-      lat <<- c(mapevent$lat)
-      coords <- data.frame(lng, lat)
-      print(coords)
-      proxy <- leafletProxy(map)
-      proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
-    }
-    else {
-      lng <<- c(lng, mapevent$lng)
-      lat <<- c(lat, mapevent$lat)
-      coords <- data.frame(lng, lat)
-      print(coords)
-      proxy <- leafletProxy(map)
-      proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
-      proxy %>% addPolygons(layerId = 'area', data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
-    }
+    
+    observeEvent(mapevent, { 
+      if (is.null(Coords$lng)) {
+        Coords$lng <- c(mapevent$lng)
+        Coords$lat <- c(mapevent$lat)
+        coords <- data.frame(lng=Coords$lng, lat=Coords$lat)
+        
+        proxy <- leafletProxy(map)
+        proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+      }
+      else {
+        Coords$lng <- c(Coords$lng, mapevent$lng)
+        Coords$lat <- c(Coords$lat, mapevent$lat)
+        coords <- data.frame(lng=Coords$lng, lat=Coords$lat)
+        
+        proxy <- leafletProxy(map)
+        proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+        proxy %>% addPolygons(layerId = 'area', data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+      }
+    })
   })
   
   # clear polygon from map
@@ -1510,17 +1515,16 @@ server <- function(input, output, session) {
     }
     proxy <- leafletProxy(map)
     proxy %>% clearShapes()
-    lng <<- c()
-    lat <<- c()
+    Coords$lng <- NULL
+    Coords$lat <- NULL
   })
   
   # clear last drawn point of polygon from map
-  observe({
-    input$clearOne
-    req(lat, lng)
-    lng <<- lng[1:(length(lng)-1)]
-    lat <<- lat[1:(length(lat)-1)]
-    coords <- data.frame(lng, lat)
+  observeEvent(input$clearOne, {
+    req(Coords$lat, Coords$lng)
+    Coords$lng <- Coords$lng[1:(length(Coords$lng)-1)]
+    Coords$lat <- Coords$lat[1:(length(Coords$lat)-1)]
+    coords <- data.frame(lng=Coords$lng, lat=Coords$lat)
     if (input$tabsel == 'totalstandard') {
       map <- 'map'
     }
@@ -1543,20 +1547,20 @@ server <- function(input, output, session) {
   routeselKarta <- eventReactive(input$selectmap,{
     # error message for if no area was defined
     shiny::validate(
-      need(length(lng) > 2  & length(lat) > 2, 'There are not enough points set on the map to create a polygon.')
+      need(length(Coords$lng) > 2  & length(Coords$lat) > 2, 'There are not enough points set on the map to create a polygon.')
     )
     # create polygon
     polyCoords <- c()
-    for (p in 1:length(lng)) {
-      polyCoords <- rbind(polyCoords, c(lng[p], lat[p]))
+    for (p in 1:length(Coords$lng)) {
+      polyCoords <- rbind(polyCoords, c(Coords$lng[p], Coords$lat[p]))
     }
-    polyCoords <- rbind(polyCoords, c(lng[1], lat[1]))
-    aoi <<- st_polygon(list(polyCoords))
+    polyCoords <- rbind(polyCoords, c(Coords$lng[1], Coords$lat[1]))
+    Coords$aoi <- st_polygon(list(polyCoords))
     # create multipoint object
     pointcoords <- data.frame(rcdat[, 2:3])
     routes <- st_multipoint(as.matrix(pointcoords))
     # use created polygon to select sites
-    routesel <- st_intersection(routes, aoi)
+    routesel <- st_intersection(routes, Coords$aoi)
     sitesel <- rcdat$site[rcdat$lon %in% routesel[,1] & rcdat$lat %in% routesel[,2]]
   })
   

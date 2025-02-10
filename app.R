@@ -1044,9 +1044,16 @@ server <- function(input, output, session) {
   })
   
   # update preselected monitoring scheme in tab 'Summarize results' if different scheme is selected in tab 'Get data'
+  # and reset species selection buttons
   observe({
     input$tabsel
     updateCheckboxGroupInput(inputId = 'tableSumm', selected = input$tabsel)
+    updateRadioButtons(inputId = 'specsp', selected = 'all')
+    updateRadioButtons(inputId = 'specspAnalyze', selected = 'all')
+  })
+  observe({
+    input$sendquery
+    updateRadioButtons(inputId = 'specspAnalyze', selected = 'all')
   })
   
   # show slider ranging from first to last (current) year of selected scheme
@@ -1172,7 +1179,7 @@ server <- function(input, output, session) {
                         checkboxGroupInput(inputId = 'indspecsp', label = NULL,
                                            choiceNames = attributes(speclist)$names,
                                            choiceValues = attr(speclist, 'art'),
-                                           selected = NULL)
+                                           selected = attr(speclist, 'art'))
                )
       )
     })

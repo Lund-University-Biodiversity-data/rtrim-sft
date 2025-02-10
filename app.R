@@ -1708,7 +1708,7 @@ server <- function(input, output, session) {
   
     # download file reporting on all selected schemes next to each other
     output$downloadComb <- downloadHandler(
-      filename = paste0('Trimcombined_', 'Figurritning_', input$filenameResSumm, '.xlsx'),
+      filename = paste0('Trimcombined_', 'Figurritning_', input$filenameResSumm, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
       content = function(file) {
         write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
       }
@@ -1716,7 +1716,7 @@ server <- function(input, output, session) {
     
     # download file reporting on all selected schemes individually
     output$downloadSingle <- downloadHandler(
-      filename = paste0('Trim_', 'Figurritning_', input$filenameResSumm, '.xlsx'),
+      filename = paste0('Trim_', 'Figurritning_', input$filenameResSumm, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
       content = function(file) {
         # if (length(input$tableSumm) == 1) {
             write_xlsx(summarizeRt()[[1]], file, format_headers = TRUE)
@@ -1729,7 +1729,7 @@ server <- function(input, output, session) {
     
     # download overview data file on all selected schemes individually
     output$downloadHomepage <- downloadHandler(
-      filename = paste0('Trim_', 'Tabeller_', input$filenameResSumm, '.xlsx'),
+      filename = paste0('Trim_', 'Tabeller_', input$filenameResSumm, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.xlsx'),
       content = function(file) {
         # if (length(input$tableSumm) == 1) {
         write_xlsx(summarizeRt()[[2]], file, format_headers = TRUE)

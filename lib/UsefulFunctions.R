@@ -1020,7 +1020,11 @@ MakeXlsFile <- function(obj, colnames = NULL, tabnames = NULL, specieslist = NUL
       hptabs[[(3+3*(i-1))]] <- Index
       hptabs[[(4+3*(i-1))]] <- Slopes
     }
-    names(hptabs) <- c('Parameters', paste0(rep(c('Tabell', 'Index', 'Slopes'), length(colnames)), rep(colnames, each = 3)))
+    if(nsyst>1) {
+      names(hptabs) <- c('Parameters', paste0(rep(c('Tabell', 'Index', 'Slopes'), length(colnames)), rep(colnames, each = 3)))
+    } else {
+      names(hptabs) <- c('Parameters', 'Tabell', 'Index', 'Slopes')
+    }
     fname <- paste0(path_project_extract,'Trim', paste(colnames, collapse = '_'), '_Tabeller_', gsub('[ :]', '_', round(Sys.time(), 0)), '.xlsx')
     write_xlsx(hptabs, path = fname, format_headers = TRUE)
     appOutput[[length(appOutput)+1]] <- hptabs

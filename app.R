@@ -195,7 +195,7 @@ ui <- fluidPage(theme = 'flatly',
                                               selected = 1, inline = TRUE)
                                            ),
                                     column(6,
-                                           textInput('filenameDat', label = 'Enter filename:', value = 'Dataextraction_All')
+                                           textInput('filenameDat', label = 'Choose a name for your files:', value = 'Dataextraction_All')
                                            )
                                     ),
                            hr(),
@@ -214,7 +214,8 @@ ui <- fluidPage(theme = 'flatly',
                                     ),
                            hr(),
                            #verbatimTextOutput('testtext'),
-                           withSpinner(DT::dataTableOutput("dataTable"), proxy.height = '150px')
+                           withSpinner(DT::dataTableOutput("dataTable"), proxy.height = '150px'),
+                           verbatimTextOutput('duplicates')
                   ),
                   tabPanel('Analyze data',
                            radioButtons('modeltype', label = 'Modeltype',
@@ -409,7 +410,7 @@ ui <- fluidPage(theme = 'flatly',
                                                               selected = c(1, 2, 3), inline = TRUE)
                                           ),
                                     column(6,
-                                           textInput('filenameRes', label = 'Enter filename:', value = 'trimOutput'))
+                                           textInput('filenameRes', label = 'Choose a name for your files:', value = 'trimOutput'))
                            ),
                            hr(),
                            fluidRow(column(6,
@@ -437,8 +438,9 @@ ui <- fluidPage(theme = 'flatly',
                   ),
                   tabPanel('Summarize results',
                            hr(),
-                           p('NOTE: This has to be the same filename as used in tab "Analyze data" for all of the monitoring systems you want summaries for.'),
-                           textInput('filenameResSumm', label = 'Enter filename:', value = 'trimOutput'),
+                           textInput('filenameResSumm', label = 'Filename used in analysis:', value = 'trimOutput'),
+                           p(em('NOTE: This has to be the same filename as used in tab "Analyze data" for all of the monitoring systems you want summaries for.')),
+                           hr(),
                            #textInput('yearBaseSumm', label = 'Base year:', value = '2002'),
                            uiOutput('yearBaseSummAuto'),
                            hr(),
@@ -634,8 +636,17 @@ server <- function(input, output, session) {
         miscData4 <- miscData4[-excl,]
       }
       
+      # remove duplicate values and pick the largest one (max)
+      miscData5 <- aggregate(miscData4$count, by=list(extra=miscData4$extra, site=miscData4$site, time=miscData4$time, species=miscData4$species), FUN=max)
+      colnames(miscData5) <- c("extra", "site", "time", "species", "count")
+      if ((nrow(miscData4)-nrow(miscData5)) > 0) {
+        output$duplicates <- renderPrint({
+          print(paste(nrow(miscData4)-nrow(miscData5), 'duplicate values were removed. In these instances, the max values were kept.'))
+        })
+      }
+
       # export and save data
-      exportSaveData(miscData4, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
+      exportSaveData(miscData5, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
     }
     
     else if (input$databasechoice == "mongodb") {
@@ -715,12 +726,16 @@ server <- function(input, output, session) {
 
       dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
 
-      #output$downloadData <- downloadHandler(
-      #  content = function(file) {
-      #    write.csv(dataMerge, file = paste0('extract/', input$filenameDat, '_', "totalstd", '_', gsub('[ :]', '_', Sys.time()), '.csv'),
-      #      row.names = FALSE)
-      #  }
-      #)
+      # aggregate by getting the maximum value in case of doublon
+      # (works as well for iwc when boat/land can be done the same year)
+      resAggregate <- aggregate(dataMerge$count, by=list(site=dataMerge$site, species=dataMerge$species, time=dataMerge$time), FUN=max)
+      colnames(resAggregate) <- c("site", "species", "time", "count")
+      
+      if ((nrow(dataMerge)-nrow(resAggregate)) > 0) {
+        output$duplicates <- renderPrint({
+          print(paste(nrow(dataMerge)-nrow(resAggregate), 'duplicate values were removed. In these instances, the max values were kept.'))
+        })      
+      }
 
       exportSaveData(dataMerge, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
     }

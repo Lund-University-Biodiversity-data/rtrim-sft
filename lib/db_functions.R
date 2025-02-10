@@ -1156,17 +1156,12 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 	shiny::validate(
 	  need(nrow(result) > 0, "No data found for the specified request.")
 	)
-	#resRemoveDuplicate=unique(result)
-	# aggregate by getting the maximum value in case of doublon
-	# (works as well for iwc when boat/land can be done the same year)
-	resAggregate <- aggregate(result$count, by=list(site=result$site, species=result$species, time=result$time), FUN=max)
-	colnames(resAggregate) <- c("site", "species", "time", "count")
 
-
-
+	# aggregation was moved out of this function to app.R
+	
 	print(paste("end getTabCountMongo ", Sys.time()))
 
-	return(resAggregate)
+	return(result)
 
 
 }

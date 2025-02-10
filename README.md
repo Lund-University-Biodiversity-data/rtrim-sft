@@ -20,7 +20,13 @@ install.packages("pool")
 install.packages("rtrim")
 install.packages("readxl")
 install.packages("writexl")
-install.packages("leaflet")
+
+install.packages("shinyjs", dependencies=TRUE)
+sudo apt-get install libgdal-dev
+sudo apt-get install gfortran
+install.packages("sf", dependencies=TRUE)
+sudo apt-get install libudunits2-dev
+install.packages("leaflet", dependencies=TRUE)
 ```
 
 # To use it without ODBC connector, but directly to postgres

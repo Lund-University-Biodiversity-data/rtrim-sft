@@ -151,12 +151,13 @@ ui <- fluidPage(theme = 'flatly',
                                                                selected = 3, inline = TRUE)
                                             ),
                            conditionalPanel(condition = 'input.tabsel == "misc_census"',
-                                            p("Please make sure your data is in the required format. You can find a template below."),
+                                            p(em("Please make sure your data is in the required format. You can find a template below.")),
                                             downloadLink("misc_template", "Download excel template"),
                                             fileInput("misc_data", "Choose CSV, XLSX or XLS file", accept = c(".csv", ".xlsx", ".xls")),
                                             verbatimTextOutput("misc_data_contents"),
-                                            print('Below you will see the first six rows of the imported data. If you find it has not been recognized correctly, please check the format of your data and try uploading it again.'),
-                                            tableOutput("contents")
+                                            p(em('Below you will see the first six rows of the imported data. If you find it has not been recognized correctly, please check the format of your data and try uploading it again.')),
+                                            tableOutput("contents"),
+                                            uiOutput("reminder")
                                             ),
                            hr(),
                            withSpinner(uiOutput('yrSlider')),
@@ -174,7 +175,7 @@ ui <- fluidPage(theme = 'flatly',
                                            selected = 'all')),
                                     column(6,
                                            conditionalPanel(condition = 'input.specsp == "custom"',
-                                                            p('Please upload an excel or csv file listing the art numbers of the species you want to select. You can find a template below for the required format.'),
+                                                            p(em('Please upload an excel or csv file listing the art numbers of the species you want to select. You can find a template below for the required format.')),
                                                             downloadLink('specTemplate', 'Download template'),
                                                             fileInput("specset", "Choose xlsx, xls or csv File", accept = c(".csv", ".xlsx", ".xls")),
                                                             verbatimTextOutput("specset_contents"))
@@ -467,7 +468,7 @@ ui <- fluidPage(theme = 'flatly',
                            p('Do you want "homepage" files (you will get one for each system)? This is the "overview data" file.'),
                            checkboxInput('homepageSumm', label = 'Homepage files', value = TRUE),
                            hr(),
-                           p('Do you want to use shorter time periods for some species? (i.e. use the information in "SpeciesWithShorterTimePeriods.xls")<br> If the system(s) you are running does not have such information in the xls-file it does not matter how you specify this.'),
+                           p('Do you want to use shorter time periods for some species? (i.e. use the information in "SpeciesWithShorterTimePeriods.xls") If the system(s) you are running does not have such information in the xls-file it does not matter how you specify this.'),
                            checkboxInput('shorterPeriodSumm', label = 'Shorter time periods', value = TRUE),
                            hr(),
                            radioButtons('langSumm', label = 'Language of species name',
@@ -1025,7 +1026,7 @@ server <- function(input, output, session) {
   )
   
   # read data file uploaded by user 
-  output$misc_data_contents <- renderPrint({print(input$misc_data)})
+  output$misc_data_contents <- renderPrint(input$misc_data)
   
   output$contents <- renderTable({
     file <- input$misc_data
@@ -1043,9 +1044,13 @@ server <- function(input, output, session) {
       print("ERROR: Please upload a csv file or an excel file")
     }
     
-    print(head(miscData))
+    head(miscData)
   })
   
+  observeEvent(input$misc_data, {
+    output$reminder <- renderUI({
+      strong('The file is uploaded, but remember to still run the query!')})
+  })
   
   output$resultGenerateSpecies <- renderPrint({
     getspecies()})

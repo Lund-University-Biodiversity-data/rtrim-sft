@@ -213,9 +213,10 @@ ui <- fluidPage(theme = 'flatly',
                                            ),
                                     ),
                            hr(),
-                           #verbatimTextOutput('testtext'),
                            withSpinner(DT::dataTableOutput("dataTable"), proxy.height = '150px'),
-                           verbatimTextOutput('duplicates')
+                           verbatimTextOutput('duplicates'),
+                           verbatimTextOutput('querytime'),
+                           verbatimTextOutput("querytimetable") 
                   ),
                   tabPanel('Analyze data',
                            radioButtons('modeltype', label = 'Modeltype',
@@ -587,6 +588,8 @@ server <- function(input, output, session) {
   # get observed species data
   data <- eventReactive(input$sendquery,{
   
+    startTime <- Sys.time()
+    
     # error message in case no species were selected
     shiny::validate(
       need(length(input$indspecsp) > 0, "Please select at least one species.")
@@ -717,8 +720,6 @@ server <- function(input, output, session) {
 
       sitesMatchMongo <- getMatchSitesMongo(projectId)
 
-      print(Sys.time())
-  
       # get matching species
       #speciesMatch <- getMatchSpecies(poolParams, specart())
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
@@ -737,7 +738,11 @@ server <- function(input, output, session) {
         })      
       }
 
+      endTime <- Sys.time()
+      queryTime <<- diff(c(startTime, endTime))
+      
       exportSaveData(dataMerge, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
+      
     }
     else if (input$databasechoice == "psql") {
 
@@ -760,6 +765,11 @@ server <- function(input, output, session) {
             specper = input$specper, selyrs = input$selyrs, line = input$linepoint,
             savedat = input$savedat, filename = input$filenameDat)
     } 
+    
+    endTime <- Sys.time()
+    queryTime <<- diff(c(startTime, endTime))
+    
+    return(dataMerge)
     
   })
   
@@ -1578,8 +1588,14 @@ server <- function(input, output, session) {
   })
   
   
-  # output$testtext <- renderText({
-  #   as.character('od'%in%input$trimset)})
+  output$querytime <- renderText({
+    req(data())
+    print(paste0('Query executed in ', queryTime, ' seconds.'))
+    })
+  output$querytimetable <- renderPrint({
+    req(data())
+    times
+    })
   output$testtext2 <- renderPrint({
     resultout()[[1]]})
   # output$testtext <- renderPrint({

@@ -491,6 +491,9 @@ ui <- fluidPage(theme = 'flatly',
                                            )
                                     ),
                            hr(),
+                           p('You can find all the downloadable files here:'),
+                           tags$a("Download files folder", href=url_extract, target="_blank", rel="noopener noreferrer"),
+                           hr(),
                            verbatimTextOutput('listSites'),
                            withSpinner(verbatimTextOutput('rtSumm'), proxy.height = '100px')
                                             

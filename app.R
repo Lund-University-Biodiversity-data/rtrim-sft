@@ -192,7 +192,7 @@ ui <- fluidPage(theme = 'flatly',
                            fluidRow(column(6,
                                            checkboxGroupInput('savedat',
                                               label = 'Data output to (will always be available in app)?', 
-                                              choices = list(`R Workspace` = 1,
+                                              choices = list(#`R Workspace` = 1,
                                                              `.csv-file` = 2,
                                                              `.csv-file (xls-friendly)` = 3,
                                                              `.rdata-file` = 4),
@@ -409,7 +409,7 @@ ui <- fluidPage(theme = 'flatly',
                            fluidRow(column(6,
                                            checkboxGroupInput('saveresult',
                                                               label = 'Result output to (will always be available in app)?', 
-                                                              choices = list(`R Workspace (named as trimOutput)` = 1,
+                                                              choices = list(#`R Workspace (named as trimOutput)` = 1,
                                                                              `.rdata-file` = 2,
                                                                              `Save graphs as pdf` = 3),
                                                               selected = c(1, 2, 3), inline = TRUE)
@@ -616,9 +616,9 @@ server <- function(input, output, session) {
       
       # select time period by excluding rows of years > or < than selected period
       excl <- c()
-      miscData2 <- miscData
-      for (ob in 1:nrow(miscData)) {
-        if (miscData$yr[ob] < input$selyrs[1] || miscData$yr[ob] > input$selyrs[2]) {
+      miscData2 <- miscData()
+      for (ob in 1:nrow(miscData())) {
+        if (miscData()$yr[ob] < input$selyrs[1] || miscData()$yr[ob] > input$selyrs[2]) {
           excl <- c(excl, ob)
         }
       }
@@ -729,7 +729,7 @@ server <- function(input, output, session) {
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
       speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, input$indspecsp)
 
-      dataMerge <<- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
+      dataMerge <- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
 
       # aggregate by getting the maximum value in case of doublon
       # (works as well for iwc when boat/land can be done the same year)
@@ -816,8 +816,6 @@ server <- function(input, output, session) {
     shiny::validate(
       need(nrow(dat) > 0, "There was no data found that matches your selection.")
     )
-    dat2 <<- dat
-    spartA <<- input$indspecspAnalyze
     spAix <- input$indspecspAnalyze %in% as.integer(unique(dat$species))
     styr <- if(input$tabsel=='total_iwc_januari' | input$tabsel=='total_iwc_september'){
                 NULL
@@ -881,11 +879,11 @@ server <- function(input, output, session) {
     # divide species into ones that gave results and ones that didn't
     worked <- c()
     not <- c()
-    for (s in 1:length(trimOutput)) {
-      if ('trim' %in% class(trimOutput[[s]]$value)) {
-        worked <- c(worked, gsub('Art_', '', names(trimOutput)[s]))
+    for (s in 1:length(resultout())) {
+      if ('trim' %in% class(resultout()[[s]]$value)) {
+        worked <- c(worked, gsub('Art_', '', names(resultout())[s]))
       } else {
-        not <- c(not, gsub('Art_', '', names(trimOutput)[s]))
+        not <- c(not, gsub('Art_', '', names(resultout())[s]))
       }
     }
     if (is.null(worked)) {
@@ -927,8 +925,8 @@ server <- function(input, output, session) {
       else if (filter == 'karta') {
         # coordinates of polygon
         sel <- c()
-        for (co in 1:nrow(aoi[[1]])) {
-          sel <- c(sel, aoi[[1]][co,])
+        for (co in 1:nrow(Coords$aoi[[1]])) {
+          sel <- c(sel, Coords$aoi[[1]][co,])
         }
       }
     }
@@ -942,8 +940,8 @@ server <- function(input, output, session) {
       else if (filter == 'karta') {
         # coordinates of polygon
         sel <- c()
-        for (co in 1:nrow(aoi[[1]])) {
-          sel <- c(sel, aoi[[1]][co,])
+        for (co in 1:nrow(Coords$aoi[[1]])) {
+          sel <- c(sel, Coords$aoi[[1]][co,])
         }
       }
     }
@@ -957,8 +955,8 @@ server <- function(input, output, session) {
       else if (filter == 'karta') {
         # coordinates of polygon
         sel <- c()
-        for (co in 1:nrow(aoi[[1]])) {
-          sel <- c(sel, aoi[[1]][co,])
+        for (co in 1:nrow(Coords$aoi[[1]])) {
+          sel <- c(sel, Coords$aoi[[1]][co,])
         }
       }
     }
@@ -975,8 +973,8 @@ server <- function(input, output, session) {
       else if (filter == 'karta') {
         # coordinates of polygon
         sel <- c()
-        for (co in 1:nrow(aoi[[1]])) {
-          sel <- c(sel, aoi[[1]][co,])
+        for (co in 1:nrow(Coords$aoi[[1]])) {
+          sel <- c(sel, Coords$aoi[[1]][co,])
         }
       }
     }
@@ -998,12 +996,10 @@ server <- function(input, output, session) {
     mat[is.na(mat)] <- ''
     params <- data.frame(mat)
     colnames(params) <- list('database', 'scheme', 'subscheme', 'period', 'time range', 'species (with result)', 'species (without result)', 'North-South', 'corrections', 'modeltype', 'trimsettings', 'spatial filter', 'selected', 'sites selected')
-    params <<- params
-
     
     # use data frame 'params' in DoSummarizeResult() function to add it as a sheet in the excel output 'Tabeller'
     # create excel files
-    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, lang=input$langSumm) 
+    DoSummarizeResult(filenames=input$filenameResSumm, tables=c(input$tableSumm), base=strtoi(input$yearBaseSumm), spdat=spdat, startyr=startyr, homepage=input$homepageSumm, lang=input$langSumm, params = params) 
 
   })
 
@@ -1030,20 +1026,37 @@ server <- function(input, output, session) {
   output$contents <- renderTable({
     file <- input$misc_data
     req(file)
-    
+
     ext <- tools::file_ext(file$datapath)
-    
+
     if (ext == "csv") {
-      miscData <<- read.csv(file$datapath, header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
+      miscData <- read.csv(file$datapath, header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
     }
     else if (ext == "xlsx" | ext == "xls") {
-      miscData <<- read_excel(file$datapath, col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
+      miscData <- read_excel(file$datapath, col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
     }
     else {
       print("ERROR: Please upload a csv file or an excel file")
     }
     
     print(head(miscData))
+  })
+  
+  miscData <- eventReactive(input$misc_data,{
+    file <- input$misc_data
+    req(file)
+    
+    ext <- tools::file_ext(file$datapath)
+    
+    if (ext == "csv") {
+      miscData <- read.csv(file$datapath, header = TRUE, colClasses = c("extra" = "character", "karta" = "character", "yr" = "integer", "art" = "character", "ind" = "integer"))
+    }
+    else if (ext == "xlsx" | ext == "xls") {
+      miscData <- read_excel(file$datapath, col_names = TRUE, col_types = c("text", "text", "numeric", "text", "numeric"))
+    }
+    else {
+      print("ERROR: Please upload a csv file or an excel file")
+    }
   })
   
   
@@ -1074,12 +1087,13 @@ server <- function(input, output, session) {
   observe({input$misc_data
     output$yrSlider <- renderUI({
       if (input$tabsel == "misc_census") {
-          shiny::validate(
-            need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
-          )
-          sliderInput(inputId = 'selyrs', label = 'Set years',
-                    min = min(miscData$yr), max = max(miscData$yr), value = c(min(miscData$yr), max(miscData$yr)),
-                    step = 1, sep = NULL)
+        shiny::validate(
+          need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
+        )
+        
+        sliderInput(inputId = 'selyrs', label = 'Set years',
+                  min = min(miscData()$yr), max = max(miscData()$yr), value = c(min(miscData()$yr), max(miscData()$yr)),
+                  step = 1, sep = NULL)
       }
       else {
         sliderInput(inputId = 'selyrs', label = 'Set years',
@@ -1107,17 +1121,18 @@ server <- function(input, output, session) {
   observe({ input$misc_data
     output$specCheckbox <- renderUI({
       if (input$tabsel == "misc_census") {
-          shiny::validate(
-            need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
-          )
-          species <- c(as.integer(unique(miscData$art)))
-          species_string <- paste0(species, collapse = ",")
-          spdat <- getSpeciesNames(poolParams, species_string)
-          
-          # get a sorted list of the ranks of the species that exist in both objects
-          specranks <- spdat$rank
-          specranks <- sort(specranks)
-          speclist <- as.list(specranks)
+        shiny::validate(
+          need(!is.null(input$misc_data), "Please upload a csv file or an excel file containing your data.")
+        )
+        
+        species <- c(as.integer(unique(miscData()$art)))
+        species_string <- paste0(species, collapse = ",")
+        spdat <- getSpeciesNames(poolParams, species_string)
+        
+        # get a sorted list of the ranks of the species that exist in both objects
+        specranks <- spdat$rank
+        specranks <- sort(specranks)
+        speclist <- as.list(specranks)
       }
   
       else if (input$databasechoice == 'mongodb') {
@@ -1420,7 +1435,7 @@ server <- function(input, output, session) {
         addTiles() |> 
         setView(15, 63, zoom = 4) |>
         addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
-        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% data()$site], lat = rcdat$lat[rcdat$site %in% data()$site], color = 'red' , radius = 2, group = 'routes with observations') |>
         addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
         addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
     }) 
@@ -1433,7 +1448,7 @@ server <- function(input, output, session) {
         addTiles() |> 
         setView(15, 63, zoom = 4) |>
         addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
-        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% data()$site], lat = rcdat$lat[rcdat$site %in% data()$site], color = 'red' , radius = 2, group = 'routes with observations') |>
         addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
         addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
     })
@@ -1446,7 +1461,7 @@ server <- function(input, output, session) {
         addTiles() |> 
         setView(15, 63, zoom = 4) |>
         addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
-        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% data()$site], lat = rcdat$lat[rcdat$site %in% data()$site], color = 'red' , radius = 2, group = 'routes with observations') |>
         addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
         addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
     })
@@ -1459,11 +1474,14 @@ server <- function(input, output, session) {
         addTiles() |> 
         setView(15, 63, zoom = 4) |>
         addCircleMarkers(data = rcdat, lng = rcdat$lon, lat = rcdat$lat, color = 'blue', radius = 2, group = 'all routes') |>
-        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% dataMerge$site], lat = rcdat$lat[rcdat$site %in% dataMerge$site], color = 'red' , radius = 2, group = 'routes with observations') |>
+        addCircleMarkers(data = rcdat, lng = rcdat$lon[rcdat$site %in% data()$site], lat = rcdat$lat[rcdat$site %in% data()$site], color = 'red' , radius = 2, group = 'routes with observations') |>
         addLegend(position = c('topleft'), colors = c('blue', 'red', 'black'), labels = c('routes of the scheme', 'routes present in your data', 'area of interest')) |>
         addLayersControl(overlayGroups = c('all routes', 'routes with observations'))
     })
   })
+  
+  # Create reactive values to store the coordinates of the polygon for access from multiple functions in local environment
+  Coords <- reactiveValues(lng = NULL, lat = NULL, aoi = NULL)
   
   # draw polygon on map
   observe({
@@ -1490,24 +1508,26 @@ server <- function(input, output, session) {
     else {
       req(input$mapXXX_click)
     }
-      
-    if (!exists('lng') & !exists('lat')) {
-      lng <<- c(mapevent$lng)
-      lat <<- c(mapevent$lat)
-      coords <- data.frame(lng, lat)
-      print(coords)
-      proxy <- leafletProxy(map)
-      proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
-    }
-    else {
-      lng <<- c(lng, mapevent$lng)
-      lat <<- c(lat, mapevent$lat)
-      coords <- data.frame(lng, lat)
-      print(coords)
-      proxy <- leafletProxy(map)
-      proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
-      proxy %>% addPolygons(layerId = 'area', data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
-    }
+    
+    observeEvent(mapevent, { 
+      if (is.null(Coords$lng)) {
+        Coords$lng <- c(mapevent$lng)
+        Coords$lat <- c(mapevent$lat)
+        coords <- data.frame(lng=Coords$lng, lat=Coords$lat)
+        
+        proxy <- leafletProxy(map)
+        proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+      }
+      else {
+        Coords$lng <- c(Coords$lng, mapevent$lng)
+        Coords$lat <- c(Coords$lat, mapevent$lat)
+        coords <- data.frame(lng=Coords$lng, lat=Coords$lat)
+        
+        proxy <- leafletProxy(map)
+        proxy %>% addCircles(data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+        proxy %>% addPolygons(layerId = 'area', data = coords, lng = coords$lng, lat = coords$lat, color = 'black')
+      }
+    })
   })
   
   # clear polygon from map
@@ -1531,17 +1551,16 @@ server <- function(input, output, session) {
     }
     proxy <- leafletProxy(map)
     proxy %>% clearShapes()
-    lng <<- c()
-    lat <<- c()
+    Coords$lng <- NULL
+    Coords$lat <- NULL
   })
   
-  # clear polygon from map
-  observe({
-    input$clearOne
-    req(lat, lng)
-    lng <<- lng[1:(length(lng)-1)]
-    lat <<- lat[1:(length(lat)-1)]
-    coords <- data.frame(lng, lat)
+  # clear last drawn point of polygon from map
+  observeEvent(input$clearOne, {
+    req(Coords$lat, Coords$lng)
+    Coords$lng <- Coords$lng[1:(length(Coords$lng)-1)]
+    Coords$lat <- Coords$lat[1:(length(Coords$lat)-1)]
+    coords <- data.frame(lng=Coords$lng, lat=Coords$lat)
     if (input$tabsel == 'totalstandard') {
       map <- 'map'
     }
@@ -1564,20 +1583,20 @@ server <- function(input, output, session) {
   routeselKarta <- eventReactive(input$selectmap,{
     # error message for if no area was defined
     shiny::validate(
-      need(length(lng) > 2  & length(lat) > 2, 'There are not enough points set on the map to create a polygon.')
+      need(length(Coords$lng) > 2  & length(Coords$lat) > 2, 'There are not enough points set on the map to create a polygon.')
     )
     # create polygon
     polyCoords <- c()
-    for (p in 1:length(lng)) {
-      polyCoords <- rbind(polyCoords, c(lng[p], lat[p]))
+    for (p in 1:length(Coords$lng)) {
+      polyCoords <- rbind(polyCoords, c(Coords$lng[p], Coords$lat[p]))
     }
-    polyCoords <- rbind(polyCoords, c(lng[1], lat[1]))
-    aoi <<- st_polygon(list(polyCoords))
+    polyCoords <- rbind(polyCoords, c(Coords$lng[1], Coords$lat[1]))
+    Coords$aoi <- st_polygon(list(polyCoords))
     # create multipoint object
     pointcoords <- data.frame(rcdat[, 2:3])
     routes <- st_multipoint(as.matrix(pointcoords))
     # use created polygon to select sites
-    routesel <- st_intersection(routes, aoi)
+    routesel <- st_intersection(routes, Coords$aoi)
     sitesel <- rcdat$site[rcdat$lon %in% routesel[,1] & rcdat$lat %in% routesel[,2]]
   })
   
@@ -1652,21 +1671,21 @@ server <- function(input, output, session) {
     output$downloadCSV <- downloadHandler(
       filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
       content = function(file) {
-        write.csv(dataMerge, file, row.names = FALSE)
+        write.csv(data(), file, row.names = FALSE)
       }
     )
     
     output$downloadCSV2 <- downloadHandler(
       filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.csv'),
       content = function(file) {
-        write.csv2(dataMerge, file, row.names = FALSE)
+        write.csv2(data(), file, row.names = FALSE)
       }
     )
     
     output$downloadRDATA <- downloadHandler(
       filename = paste0(input$filenameDat, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
       content = function(file) {
-        save(dataMerge, file = file)
+        save(data(), file = file)
       }
     )
   })
@@ -1678,6 +1697,7 @@ server <- function(input, output, session) {
     # enable the download buttons
       if (2 %in% input$saveresult) {
           shinyjs::enable("downloadAnalysis")
+          result <- resultout()
         }
       if (3 %in% input$saveresult) {
           shinyjs::enable("downloadPDF")
@@ -1686,7 +1706,7 @@ server <- function(input, output, session) {
     output$downloadAnalysis <- downloadHandler(
       filename = paste0(input$filenameRes, '_', gsub('[ :]', '_', round(Sys.time(),0)), '.rdata'),
       content = function(file) {
-        save(trimOutput, file = file)
+        save(result, file = file)
       }
     )
     

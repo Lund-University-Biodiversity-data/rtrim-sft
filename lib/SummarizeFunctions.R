@@ -9,7 +9,7 @@ library(writexl)
 
 
 
-DoSummarizeResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NULL, startyr=NULL, homepage=NULL, lang=NULL) {
+DoSummarizeResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NULL, startyr=NULL, homepage=NULL, lang=NULL, params=NULL) {
 
   shortcolumn <- c()
   shorttab <- c()
@@ -84,6 +84,6 @@ DoSummarizeResult <- function (filenames=NULL, tables=NULL, base=NULL, spdat=NUL
   }
 
 
-  MakeXlsFile(resultout, colnames = shortcolumn, tabnames = shorttab, specieslist = sps_char, specieslanguage = lang, homepage = homepage)
+  MakeXlsFile(resultout, colnames = shortcolumn, tabnames = shorttab, specieslist = sps_char, specieslanguage = lang, homepage = homepage, params = params)
 
 }

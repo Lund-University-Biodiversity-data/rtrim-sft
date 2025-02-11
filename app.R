@@ -1049,7 +1049,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$misc_data, {
     output$reminder <- renderUI({
-      strong('The file is uploaded, but remember to still run the query!')})
+      strong(em('The file is uploaded, but remember to still run the query!'))})
   })
   
   output$resultGenerateSpecies <- renderPrint({

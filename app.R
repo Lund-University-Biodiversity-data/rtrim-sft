@@ -653,6 +653,7 @@ server <- function(input, output, session) {
       }
 
       # export and save data
+      dataMerge <- miscData5
       exportSaveData(miscData5, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
     }
     
@@ -743,7 +744,7 @@ server <- function(input, output, session) {
       }
 
       endTime <- Sys.time()
-      queryTime <<- diff(c(startTime, endTime))
+      Coords$queryTime <- diff(c(startTime, endTime))
       
       exportSaveData(dataMerge, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
       
@@ -765,13 +766,13 @@ server <- function(input, output, session) {
         regKustdat <<- getKustData(pool)
       }
 
-      DoQuery(pool = pool, tab = input$tabsel, spec=input$indspecsp,
+      dataMerge <- DoQuery(pool = pool, tab = input$tabsel, spec=input$indspecsp,
             specper = input$specper, selyrs = input$selyrs, line = input$linepoint,
             savedat = input$savedat, filename = input$filenameDat)
     } 
     
     endTime <- Sys.time()
-    queryTime <<- diff(c(startTime, endTime))
+    Coords$queryTime <- diff(c(startTime, endTime))
     
     return(dataMerge)
     
@@ -1080,6 +1081,11 @@ server <- function(input, output, session) {
   })
   observe({
     input$sendquery
+    updateRadioButtons(inputId = 'specspAnalyze', selected = 'all')
+  })
+  observe({
+    input$databasechoice
+    updateRadioButtons(inputId = 'specsp', selected = 'all')
     updateRadioButtons(inputId = 'specspAnalyze', selected = 'all')
   })
   
@@ -1481,7 +1487,7 @@ server <- function(input, output, session) {
   })
   
   # Create reactive values to store the coordinates of the polygon for access from multiple functions in local environment
-  Coords <- reactiveValues(lng = NULL, lat = NULL, aoi = NULL)
+  Coords <- reactiveValues(lng = NULL, lat = NULL, aoi = NULL, queryTime = NULL)
   
   # draw polygon on map
   observe({
@@ -1620,12 +1626,14 @@ server <- function(input, output, session) {
   
   output$querytime <- renderText({
     req(data())
-    print(paste0('Query executed in ', queryTime, ' seconds.'))
+    print(paste0('Query executed in ', Coords$queryTime, ' seconds.'))
     })
   output$querytimetable <- renderPrint({
-    req(data())
-    times
-    })
+    if (input$databasechoice == 'mongodb' & input$tabsel != 'misc_census') {
+      req(data())
+      req(times)
+      times
+    }})
   output$testtext2 <- renderPrint({
     resultout()[[1]]})
   # output$testtext <- renderPrint({

@@ -734,16 +734,16 @@ server <- function(input, output, session) {
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
       speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, input$indspecsp)
 
-      dataMerge <- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
+      result <- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
 
       # aggregate by getting the maximum value in case of doublon
       # (works as well for iwc when boat/land can be done the same year)
-      resAggregate <- aggregate(dataMerge$count, by=list(site=dataMerge$site, species=dataMerge$species, time=dataMerge$time), FUN=max)
-      colnames(resAggregate) <- c("site", "species", "time", "count")
+      dataMerge <- aggregate(result$count, by=list(site=result$site, species=result$species, time=result$time), FUN=max)
+      colnames(dataMerge) <- c("site", "species", "time", "count")
       
-      if ((nrow(dataMerge)-nrow(resAggregate)) > 0) {
+      if ((nrow(result)-nrow(dataMerge)) > 0) {
         output$duplicates <- renderPrint({
-          print(paste(nrow(dataMerge)-nrow(resAggregate), 'duplicate values were removed. In these instances, the max values were kept.'))
+          print(paste(nrow(result)-nrow(dataMerge), 'duplicate values were removed. In these instances, the max values were kept.'))
         })      
       }
 

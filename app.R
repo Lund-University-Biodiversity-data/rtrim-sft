@@ -90,7 +90,7 @@ ui <- fluidPage(theme = 'flatly',
                             # }
                             .keyButton {
                                 color: white;
-                                background-color: steelblue;
+                                background-color: #00308F;
                             }
                             "
                     )

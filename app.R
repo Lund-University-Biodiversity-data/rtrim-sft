@@ -643,10 +643,11 @@ server <- function(input, output, session) {
           excl <- c(excl, ob)
         }
       }
+
       if (length(excl > 0)) {
         miscData4 <- miscData4[-excl,]
       }
-      
+
       # remove duplicate values and pick the largest one (max)
       miscData5 <- aggregate(miscData4$count, by=list(extra=miscData4$extra, site=miscData4$site, time=miscData4$time, species=miscData4$species), FUN=max)
       colnames(miscData5) <- c("extra", "site", "time", "species", "count")
@@ -656,9 +657,53 @@ server <- function(input, output, session) {
         })
       }
 
+
+        # Create the minus1 matrix
+        # unique site-species
+        miscDataTempUniqueSiteSpecies <- unique(cbind(miscData5$site, miscData5$species))
+        #print(miscDataTemp)
+        # merge with the unique times
+        merge_minus1 <- merge(x= miscDataTempUniqueSiteSpecies, y=unique(miscData5$time))
+        #print(merge_minus1)
+        #write.csv(merge_minus1, file = 'test_merge_merge_minus1.csv', row.names = FALSE)
+        colnames(merge_minus1) <- c("site", "species", "time")
+        #print(merge_minus1)
+        # fill with -1
+        merge_minus2 <- merge(x= merge_minus1, y=(-1))
+        #print(merge_minus2)
+        colnames(merge_minus2) <- c("site", "species", "time", "count")
+
+        #write.csv(merge_minus2, file = 'test_merge_minus.csv', row.names = FALSE)
+
+        # create the zeros matrix
+        #print(unique(miscData2$species))
+        #print(miscData2)
+        #print("onlyspecies0:")
+        # get only the rows with species = 000
+        onlySpecies0 = subset(miscData2, species=='000')
+        #print("onlySpecies0")
+        #print(onlySpecies0)
+        # get the unique rows of site-time for art=000
+        miscDataTempZeros <- unique(cbind(onlySpecies0$site, onlySpecies0$time))
+        colnames(miscDataTempZeros) <- c("site", "time")
+        #print(miscDataTempZeros)
+        colnames(miscDataTempUniqueSiteSpecies) <- c("site", "species")
+        # merge with the unique species
+        merge_zeros <- merge(x= miscDataTempZeros, y=unique(miscDataTempUniqueSiteSpecies), by.x="site", by.y="site", all.x=TRUE, all.y=TRUE)
+        #merge_zeros <- left_join(miscDataTempZeros, unique(miscDataTempUniqueSiteSpecies), by = "species")
+        #print(merge_zeros)
+        # fill with count=0
+        merge_zeros_2 <- merge(x= merge_zeros, y=(0))
+        colnames(merge_zeros_2) <- c("site", "time", "species", "count")
+
+        #write.csv(merge_zeros_2, file = 'test_merge_zeros.csv', row.names = FALSE)
+
+        # merge all of this 
+      miscData6 <- mergeTabs(minus1 = merge_minus2, zeros = merge_zeros_2, stdcount = miscData5)
+    
       # export and save data
-      dataMerge <- miscData5
-      exportSaveData(miscData5, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
+      dataMerge <- miscData6
+      exportSaveData(miscData6, savedat = input$savedat, filename = input$filenameDat, input$tabsel)
     }
     
     else if (input$databasechoice == "mongodb") {

@@ -1711,19 +1711,22 @@ server <- function(input, output, session) {
   output$testtext <- renderPrint({
     session$clientData$output_plot_width})
   
-  output$listSites <- renderPrint({
-    sites_df <- data.frame(art=c(rep(0, length(resultout()))), sites = c(rep(0, length(resultout()))))
-    for (art in 1:length(resultout())) {
-      sites_df$art[art] <- names(resultout())[art]
-      obj <- resultout()[[art]]
-      sites_df$sites[art] <- list(obj$value$site_id)
-    }
-    sites_df
-  })
+
+
+  #output$listSites <- renderPrint({
+  #  sites_df <- data.frame(art=c(rep(0, length(resultout()))), sites = c(rep(0, length(resultout()))))
+  #  for (art in 1:length(resultout())) {
+  #    sites_df$art[art] <- names(resultout())[art]
+  #    obj <- resultout()[[art]]
+  #    sites_df$sites[art] <- list(obj$value$site_id)
+  #  }
+  #  sites_df
+  #})
+
+
 
   output$rtSumm <- renderPrint({
     summarizeRt()})
-
 
   output$dataTable <- DT::renderDataTable({
     DT::datatable(data(), filter='top')

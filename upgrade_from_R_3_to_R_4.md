@@ -82,6 +82,8 @@ install.packages("yaml")
 install.packages("askpass")
 install.packages("openssl")
 
+install.packages("leaflet")
+
 
 TO BE TRIED TO AVOID struggling with the dependencies !!
 install.packages("shinyjs", dependencies=TRUE)
@@ -99,3 +101,4 @@ install.packages("DiagrammeR", dependencies=TRUE)
 install.packages("tibble", dependencies=TRUE)
 
 
+libssl-dev libpq-dev

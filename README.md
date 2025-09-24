@@ -48,3 +48,22 @@ and uncomment/edit these ones, with your configuration
 sudo -u postgres psql < rtrim-params.sql
 
 
+## Install shiny-server for PROD environment
+
+To install R :
+sudo apt-get install r-base r-base-dev
+To install shiny-server :
+sudo su - -c "R -e \"install.packages('shiny', repos='https://cran.rstudio.com/')\""
+To set shiny-server as service :
+sudo apt install gdebi-core
+wget https://download3.rstudio.org/ubuntu-18.04/x86_64/shiny-server-1.5.18.987-amd64.deb
+sudo gdebi shiny-server-1.5.20.1002-amd64.deb
+sudo systemctl start shiny-server
+ => http://server-ip-address:3838
+
+To install the different webapps :
+check the path of the apps (default) in the shiny config file : /etc/shiny-server/shiny-server.conf
+Usually the apps are at /srv/shiny-server
+In this folder, create symbolic links to the apps
+like :
+sudo ln -s /home/canmoveapp/rtrim-sft sft-rtrim

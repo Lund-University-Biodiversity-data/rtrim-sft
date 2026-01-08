@@ -82,7 +82,7 @@ install.packages("yaml")
 install.packages("askpass")
 install.packages("openssl")
 
-install.packages("leaflet")
+install.packages("leaflet", dependencies=TRUE)
 
 
 TO BE TRIED TO AVOID struggling with the dependencies !!

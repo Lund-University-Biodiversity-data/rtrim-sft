@@ -91,9 +91,33 @@ getYearsMongo <- function (projectActivityId) {
 }
 
 
+# function that returns the observation field when dealing with birds/animals/...
+getObservationField <- function (animalchoice) {
+	observationField <- switch(
+	  animalchoice,
+	  birds   = "observations",
+	  mammals = "mammalObservations",
+	  stop("Unknown animalchoice: ", animalchoice)
+	)
+
+	return(observationField)
+}
+
+# function that returns the species field when dealing with birds/animals/...
+getSpeciesField <- function (animalchoice) {
+	speciesField <- switch(
+	  animalchoice,
+	  birds   = "species",
+	  mammals = "speciesMammals",
+	  stop("Unknown animalchoice: ", animalchoice)
+	)
+
+	return(speciesField)
+}
+
 # function to query mongo database collection "output" for species' scientific names
 # input: projectActivityId of selected monitoring scheme
-getUniquesSpeciesFromScheme <- function (projectActivityId) {
+getUniquesSpeciesFromScheme <- function (projectActivityId, animalchoice = "birds") {
   
   activities <- getApprovedActivities(projectActivityId)
   
@@ -101,21 +125,25 @@ getUniquesSpeciesFromScheme <- function (projectActivityId) {
   
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
+	# change the species/observations fields depending on the speciestype
+	observationField <- getObservationField(animalchoice)
+	speciesField <- getSpeciesField(animalchoice)
+
 	res <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
 	        "status" : "active",
 	        "activityId": {"$in" : [%s]}
 	    }},
 	    {"$project": {
-	        "data.observations":1
+	        "data.%s":1
 	    }},
 	    {"$unwind": "$data"},
 	    {"$project": {
-	        "obs": "$data.observations"
+	        "obs": "$data.%s"
 	    }},
 	    {"$unwind": "$obs"},
 	    {"$project": {
-	        "ssn": "$obs.species.scientificName"
+	        "ssn": "$obs.%s.scientificName"
 	    }},
 	    {"$group": {
 	    	"_id": null, 
@@ -124,7 +152,7 @@ getUniquesSpeciesFromScheme <- function (projectActivityId) {
 	    {"$sort" : {
 		    "speciesUnique" : 1
 		}}
-	    ]', activities),
+	    ]', activities, observationField, observationField, speciesField),
 		options = '{"allowDiskUse":true}',
 		iterate = TRUE
 	)
@@ -694,9 +722,9 @@ getPKTDataMongo <- function (projectId) {
 }
 
 
-getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod, activities) {
+getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod, activities, animalchoice) {
 
-	print(paste("start getTabMinus1Mongo ", Sys.time()))
+	print(paste("start getTabMinus1Mongo for ", animalchoice, Sys.time()))
   
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
 
@@ -715,6 +743,10 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 		checkPeriod <- paste0('"data.period" : ', selectedPeriod,',')
 	}
 
+	# 2026-01-13 get the observation/species fields based on the choice
+	observationField <- getObservationField(animalchoice)
+	speciesField <- getSpeciesField(animalchoice)
+
 	res <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
 			%s
@@ -723,18 +755,18 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 	    }},
 	    {"$project": {
 	        "data.location":1,
-	        "data.observations":1
+	        "data.%s":1
 	    }},
 	    {"$unwind": "$data"},
 	    {"$project": {
 	        "site": "$data.location",
-	        "obs": "$data.observations"
+	        "obs": "$data.%s"
 	    }},
 	    {"$unwind": "$obs"},
 	    {"$project": {
 	        "site": 1,
 	        %s: %s,
-	        "ssn": "$obs.species.scientificName"
+	        "ssn": "$obs.%s.scientificName"
 	    }},
 	    {"$match": {
 	        %s
@@ -745,7 +777,10 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', checkPeriod, activities, paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
+	]', checkPeriod, activities, 
+	observationField, observationField, 
+	paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), 
+	speciesField, condTotSupZero, speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -783,9 +818,9 @@ getTabMinus1Mongo <- function (projectActivityId, species, speciesSN, sites, yea
 
 
 
-getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod, activities) {
+getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod, activities, animalchoice) {
 
-	print(paste("start getTabZeroMongo ", Sys.time()))
+	print(paste("start getTabZeroMongo for ", animalchoice, Sys.time()))
 
 	fieldCount <- "individualCount"
 	checkPeriod <- ""
@@ -812,7 +847,6 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 			or <- createOrEventDateCriteria(years, iwcseptember=TRUE)
 		}
 	}
-
 	
   # query for years in which each site was surveyed
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
@@ -837,7 +871,6 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 	#vKarta <- vector()
 	vKartaMatch <- vector()
 	vYear <- vector()
-
 
 	while(!is.null(output <- res1$one())){
 
@@ -876,10 +909,13 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 
 	}
 
-
 	result1 <- data.frame(vKartaMatch,  vYear)
 	colnames(result1) <- c("site", "time")
 	result1 <- unique(result1)
+
+	# 2026-01-13 get the observation/species fields based on the choice
+	observationField <- getObservationField(animalchoice)
+	speciesField <- getSpeciesField(animalchoice)
 
   # query for species observed at the sites
 	res2 <- mongoConnection$aggregate(sprintf('[
@@ -890,18 +926,18 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 	    }},
 	    {"$project": {
 	        "data.location":1,
-	        "data.observations":1
+	        "data.%s":1
 	    }},
 	    {"$unwind": "$data"},
 	    {"$project": {
 	        "site": "$data.location",
-	        "obs": "$data.observations"
+	        "obs": "$data.%s"
 	    }},
 	    {"$unwind": "$obs"},
 	    {"$project": {
 	        "site": 1,
 	        %s: %s,
-	        "ssn": "$obs.species.scientificName"
+	        "ssn": "$obs.%s.scientificName"
 	    }},
 	    {"$match": {
 	        %s
@@ -912,7 +948,9 @@ getTabZeroMongo <- function (projectActivityId, species, speciesSN, sites, years
 	        "site" : { "$first" : "$site" },
 	        "ssn" : { "$first" : "$ssn" }
 	    }}
-	]', checkPeriod, activities, paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
+	]', checkPeriod, activities, observationField, observationField, 
+		paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), 
+		speciesField, condTotSupZero, speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -1011,9 +1049,9 @@ createOrEventDateCriteria <- function (years, vinter= FALSE, iwcjanuari=FALSE, i
     return(or)
 }
 
-getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod, activities) {
+getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, years, linepoint, selectedPeriod, activities, animalchoice) {
 
-	print(paste("start getTabCountMongo ", Sys.time()))
+	print(paste("start getTabCountMongo for", animalchoice, Sys.time()))
   
   # query for count data i.e. number of individuals observed
 	mongoConnection  <- mongo(collection = "output",db = mongo_database,url = mongo_url,verbose = FALSE,options = ssl_options())
@@ -1045,6 +1083,9 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 
 	}
 
+	# 2026-01-13 get the observation/species fields based on the choice
+	observationField <- getObservationField(animalchoice)
+	speciesField <- getSpeciesField(animalchoice)
 
 	res <- mongoConnection$aggregate(sprintf('[
 		{"$match": {
@@ -1056,26 +1097,30 @@ getTabCountMongo <- function (projectActivityId, species, speciesSN, sites, year
 	    {"$project": {
 	        "data.location":1,
 	        "data.surveyDate":1,
-		    "data.observations":1
+		    "data.%s":1
 	    }},
 	    {"$unwind": "$data"},
 	    {"$project": {
 	        "site": "$data.location",
-	        "obs": "$data.observations",
+	        "obs": "$data.%s",
 	        "surveydate": "$data.surveyDate"
 	    }},
 	    {"$unwind": "$obs"},
 	    {"$project": {
 	        "site": 1,
 	        %s: %s,
-	        "ssn": "$obs.species.scientificName",
+	        "ssn": "$obs.%s.scientificName",
 	        "surveydate": 1
 	    }},
 	    {"$match": {
 	        %s
 	        "ssn" : {"$in" : [%s]}
 	    }}
-	]', checkPeriod, activities, or, paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), condTotSupZero, speciesSN),
+	]', checkPeriod, activities, or, 
+	observationField, observationField,
+	paste0('"', fieldCount, '"'), paste0('"',"$obs.", fieldCount, '"'), 
+	speciesField,
+	condTotSupZero, speciesSN),
 	options = '{"allowDiskUse":true}',
 	iterate = TRUE
 	)
@@ -1232,7 +1277,7 @@ mergeTabs <- function (minus1, zeros, stdcount) {
 	return(final)
 }
 
-getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint, selectedPeriod, correctionsArt) {
+getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sitesMatchMongo, yearsSel, linepoint, selectedPeriod, correctionsArt, animalchoice) {
   
   withProgress(message = 'Running query', value = 0, {
   
@@ -1240,17 +1285,17 @@ getCountData <- function (projectActivityId, speciesMatch, speciesMatchSN, sites
     # query of "activity" collection
     activities <- getApprovedActivities(projectActivityId)
     # queries of "output" collection
-  	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
+  	minus1 <- getTabMinus1Mongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities, animalchoice)
     #write.csv(minus1, file = 'minus.csv', row.names = FALSE)
   	incProgress(1/4, detail = paste('step 1 #minus1'))
   	
   	start2 <- Sys.time()
-  	zeros <- getTabZeroMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
+  	zeros <- getTabZeroMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities, animalchoice)
     #write.csv(zeros, file = 'zeros.csv', row.names = FALSE)
   	incProgress(1/4, detail = paste('step 2 #zeros'))
   
   	start3 <- Sys.time()
-  	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities)
+  	stdcount <- getTabCountMongo(projectActivityId, species = speciesMatch, speciesSN = speciesMatchSN, sites = sitesMatchMongo, years = yearsSel, linepoint = linepoint, selectedPeriod = selectedPeriod, activities = activities, animalchoice)
   	incProgress(1/4, detail = paste('step 3 #count'))
   	
   	start4 <- Sys.time()

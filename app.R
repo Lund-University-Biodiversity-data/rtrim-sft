@@ -13,7 +13,6 @@ poolParams<-dbConnect(RPostgres::Postgres(), dbname = postgres_database_paramete
 #spdat2 <- getListsFromAla(poolParams)
 #spdat <- getSpeciesData(pool)
 
-
 spdat <- getSpeciesDataParams(poolParams)
 #spdat <<- getSpeciesDataMongo()
 speciesMatch <- getMatchSpecies(poolParams)
@@ -125,6 +124,10 @@ ui <- fluidPage(theme = 'flatly',
                                         choices = list(`Good old sft database on PSQL` = 'psql',
                                                        `Brand new mongoDB` = 'mongodb'),
                                         selected = 'mongodb'),
+                           radioButtons('animalchoice', label = 'Select the animals',
+                                        choices = list(`Fåglar` = 'birds',
+                                                       `Däggdjur` = 'mammals'),
+                                        selected = 'birds'),
                            radioButtons('tabsel', label = 'Select monitoring scheme',
                                         choices = list(`Standardrutter` = 'totalstandard', 
                                                        `Sommarpunktrutter` = 'totalsommar_pkt',
@@ -166,7 +169,7 @@ ui <- fluidPage(theme = 'flatly',
                            fluidRow(column(6,
                                            radioButtons('specsp', label = 'Select species set',
                                            choices = list(`All available bird species` = 'all',
-                                                       #`All available mammal species` = 'mammals',
+                                                       `All available mammal species` = 'mammals',
                                                        `Farmland Bird Index` = 'FBI',
                                                        #`Environmental Objective 13` = 'eo13',
                                                        `Fredriks urval IWC Januari` = 'iwcjan',
@@ -509,7 +512,6 @@ ui <- fluidPage(theme = 'flatly',
 
 server <- function(input, output, session) {
 
-  
   specart <- reactive({
     switch(input$specsp,
            all = c(1:699),
@@ -794,7 +796,7 @@ server <- function(input, output, session) {
       #speciesMatchScientificNames <- getListBirdsUrl(bird_list_id, specart())
       speciesMatchScientificNames <- getMatchSpeciesSN(poolParams, input$indspecsp)
 
-      result <- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt)
+      result <- getCountData (projectActivityId = projectActivityId, speciesMatch = speciesMatch, speciesMatchSN = speciesMatchScientificNames, sitesMatchMongo = sitesMatchMongo, yearsSel = input$selyrs, linepoint = linepoint, selectedPeriod = selectedPeriod, correctionsArt = correctionsArt, animalchoice = input$animalchoice)
 
       # aggregate by getting the maximum value in case of doublon
       # (works as well for iwc when boat/land can be done the same year)
@@ -1160,6 +1162,16 @@ server <- function(input, output, session) {
     updateRadioButtons(inputId = 'specspAnalyze', selected = 'all')
   })
   
+  # 2026-01-14 change selection of the species when mammals
+  observeEvent(input$animalchoice, {
+    if (input$animalchoice == "mammals") {
+      updateRadioButtons(
+        inputId = "specsp",
+        selected = "mammals"
+      )
+    }
+  })
+
   # show slider ranging from first to last (current) year of selected scheme
   observe({input$misc_data
     output$yrSlider <- renderUI({
@@ -1237,8 +1249,9 @@ server <- function(input, output, session) {
           projectId <- project_id_kust
           projectActivityId <- project_activity_id_kust
         }
-    
-        specsSN <- getUniquesSpeciesFromScheme(projectActivityId)
+        
+        # 2026-01-13 : check the animals selected as well !
+        specsSN <- getUniquesSpeciesFromScheme(projectActivityId, input$animalchoice)
         
         nbSp <- nrow(specsSN)
     
